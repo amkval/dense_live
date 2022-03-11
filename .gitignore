@@ -2,3 +2,5 @@
 *.a
 .vscode/
 live/
+server
+client
