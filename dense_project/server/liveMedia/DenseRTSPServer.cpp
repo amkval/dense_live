@@ -16,6 +16,10 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include "include/DenseRTSPServer.hh"
 
+#include "GroupsockHelper.hh"
+
+///// DenseRTSPServer /////
+
 DenseRTSPServer *DenseRTSPServer::createNew(
     UsageEnvironment &env,
     Port port,
@@ -44,8 +48,20 @@ DenseRTSPServer *DenseRTSPServer::createNew(
   //denseRTSPServer->fNextServer = NULL;
   //denseRTSPServer->fBeforeServer = NULL;
 
-  fprintf(stderr, "\n TODO: print values for easy access");
   gettimeofday(&denseRTSPServer->fStartTime, NULL);
+
+  // Print time for test:
+  time_t nowtime;
+  struct tm *nowtm;
+  char tmbuf[64], buf[64];
+
+  nowtime = denseRTSPServer->fStartTime.tv_sec;
+  nowtm = localtime(&nowtime);
+  strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
+  snprintf(buf, sizeof buf, "%s.%06ld", tmbuf, denseRTSPServer->fStartTime.tv_usec);
+
+  fprintf(stderr, "RTSPDenseServer::createNew - presentation time -> %lu %lu\n", denseRTSPServer->fStartTime.tv_sec, denseRTSPServer->fStartTime.tv_usec);
+  fprintf(stderr, "RTSPDenseServer::createNew - presentation time -> %s\n\n", buf);
 
   // Make a 'DenseSession' for each quality level
   for (int i = 0; i < denseRTSPServer->fCount; i++)
@@ -74,7 +90,7 @@ DenseRTSPServer::~DenseRTSPServer()
 
 void DenseRTSPServer::make(int number)
 {
-  fprintf(stderr, "Making DenseSession with id: %i, name %s, and startPort %d\n", number, fAlias, fStartPort);
+  fprintf(stderr, "Making DenseSession with id: %i, name %s, and startPort %d\n", number, fAlias.c_str(), fStartPort);
 
   // TODO: do we need a new UsageEnvironment? Try to use the same?
   UsageEnvironment &env = envir();
@@ -83,6 +99,7 @@ void DenseRTSPServer::make(int number)
 
   // Create 'ServerMediaSession'
   std::string denseName(fAlias + std::to_string(number));
+  fprintf(stderr, "denseName: %s\n", denseName.c_str());
 
   ServerMediaSession *sms = ServerMediaSession::createNew(
       env, denseName.c_str(), NULL, "Session streamed by 'denseServer'", False,
@@ -92,6 +109,7 @@ void DenseRTSPServer::make(int number)
   // Sleep to give us some time to kill the program(?)
   if (fStartPort == 18888)
   {
+    fprintf(stderr, "Sleeping for 1 second\n");
     sleep(1);
   }
 
@@ -101,7 +119,7 @@ void DenseRTSPServer::make(int number)
   struct in_addr destinaionAddress;
   destinaionAddress.s_addr = chooseRandomIPv4SSMAddress(env);
 
-  const unsigned short rtpPortNum = fStartPort + ((number - 1) * 2);
+  const unsigned short rtpPortNum = fStartPort + (number * 2);
   fprintf(stderr, "rtpPortNum: %hu\n", rtpPortNum);
 
   const unsigned short rtcpPortNum = rtpPortNum + 1;
@@ -150,13 +168,13 @@ void DenseRTSPServer::make(int number)
   std::string three = "third.m3u8";
   switch (number)
   {
-  case 1:
+  case 0:
     base += one;
     break;
-  case 2:
+  case 1:
     base += two;
     break;
-  case 3:
+  case 2:
     base += three;
   default:
     fprintf(stderr, "The number is outside the expected values!\n");
@@ -192,6 +210,30 @@ void DenseRTSPServer::make(int number)
   fDenseTable->Add((char const *)number, denseSession);
 
   fprintf(stderr, "Finish Make.\n");
+}
+
+void DenseRTSPServer::DenseSession::setRTPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl)
+{
+  fprintf(stderr, "setRTPGroupsock\n");
+  Groupsock *gsock = new Groupsock(env, destinationAddress, rtpPort, ttl);
+  fRTPGroupsock = gsock;
+
+  AddressString groupAddressStr(fRTPGroupsock->groupAddress());
+  fprintf(stderr, "       setRTPGSock -> AddressString groupAddressStr: %s\n", groupAddressStr.val());
+  unsigned short portNum = ntohs(fRTPGroupsock->port().num());
+  fprintf(stderr, "       setRTPGSock -> portnum: %hu\n", portNum);
+}
+
+void DenseRTSPServer::DenseSession::setRTCPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl)
+{
+  fprintf(stderr, "setRTCPGroupsock\n");
+  Groupsock *gsock = new Groupsock(env, destinationAddress, rtpPort, ttl);
+  fRTCPGroupsock = gsock;
+
+  AddressString groupAddressStr(fRTCPGroupsock->groupAddress());
+  fprintf(stderr, "       setRTPCONTROL gsock -> AddressString groupAddressStr: %s\n", groupAddressStr.val());
+  unsigned short portNum = ntohs(fRTCPGroupsock->port().num());
+  fprintf(stderr, "       setRTPCONTROL gsock -> portnum: %hu\n", portNum);
 }
 
 ///// DenseSession /////

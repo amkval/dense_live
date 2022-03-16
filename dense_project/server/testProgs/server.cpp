@@ -20,9 +20,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include "BasicUsageEnvironment.hh"
 
-/*
 #include "../liveMedia/include/DenseRTSPServer.hh"
-*/
 
 #include <string>
 
@@ -41,12 +39,12 @@ int main(int argc, char **argv)
   std::string time = argv[2];
   std::string alias = "denseServer";
 
-  fprintf(stderr, "main():\n");
+  fprintf(stderr, "Starting server!\n");
   fprintf(stderr,
           "port: %d\nreclamationSeconds: %u\ncount: %d\nname: %s\ntime: %s\nalias: %s\n",
           port, reclamationSeconds, count, name.c_str(), time.c_str(), alias.c_str());
 
-  /*
+  
   DenseRTSPServer *denseRTSPServer = DenseRTSPServer::createNew(
       *env, port, NULL, reclamationSeconds, NULL, count, name, time, alias);
 
@@ -54,7 +52,6 @@ int main(int argc, char **argv)
   {
     *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
   }
-  */
 
   env->taskScheduler().doEventLoop(); // Does not return
 

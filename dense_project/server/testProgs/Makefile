@@ -17,16 +17,8 @@ server:
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(SERVER).cpp
 	c++ -g -o $(SERVER) -L. $(DENSE_RTSP_SERVER).o $(MANIFEST_RTP_SINK).o $(CHECK_SOURCE).o $(SERVER).o $(LIBS)
 
-client:
-	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(CLIENT).cpp
-	c++ -g -o $(CLIENT) -L. $(CLIENT).o $(LIBS)
-
-.PHONY: clean all server2
-server2:
-	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(SERVER).cpp
-	c++ -g -o $(SERVER) -L. $(SERVER).o $(LIBS)
-
-all: server client
+.PHONY: clean all
+all: server
 
 clean:
 	rm -f $(SERVER)

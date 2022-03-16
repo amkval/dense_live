@@ -4,13 +4,13 @@ ManifestRTPSink *ManifestRTPSink::createNew(
     UsageEnvironment &env, Groupsock *RTPGroupsock,
     unsigned char rtpPayloadFormat,
     unsigned rtpTimestampFrequency,
-    char const *sdpMediaTypeString,
+    std::string sdpMediaTypeString,
     char const *rtpPayloadFormatName,
     DenseRTSPServer *denseRTSPServer,
     unsigned numChannels,
     Boolean allowMultipleFramesPerPacket,
     Boolean doNormalMBitRule,
-    const char *name)
+    std::string name)
 {
   return new ManifestRTPSink(
       env, RTPGroupsock, rtpPayloadFormat, rtpTimestampFrequency,
@@ -23,20 +23,23 @@ ManifestRTPSink::ManifestRTPSink(
     UsageEnvironment &env, Groupsock *RTPGroupsock,
     unsigned char rtpPayloadFormat,
     unsigned rtpTimestampFrequency,
-    char const *sdpMediaTypeString,
+    std::string sdpMediaTypeString,
     char const *rtpPayloadFormatName,
     DenseRTSPServer *denseRTSPServer,
     unsigned numChannels,
     Boolean allowMultipleFramesPerPacket,
     Boolean doNormalMBitRule,
-    const char *name)
+    std::string name)
     : MultiFramedRTPSink(env, RTPGroupsock, rtpPayloadFormat,
                          rtpTimestampFrequency, rtpPayloadFormatName, numChannels),
       fAllowMultipleFramesPerPacket(allowMultipleFramesPerPacket),
-      fSetMbitOnNextPacket(False)
+      fSetMBitOnNextPacket(False)
 {
-  fSDPMediaTypeString = sdpMediaTypeString;
+  fSDPMediaTypeString = sdpMediaTypeString.empty() ? "unknown" : sdpMediaTypeString;
+  fName = name.empty() ? "unknown" : name;
+  fSetMBitOnLastFrames = doNormalMBitRule && fSDPMediaTypeString.compare("audio") != 0;
+}
 
-  fName = // TODO: check if name is null and replace with unknown.
-  fSetMBitOnLastFrames = doNormalMBitRule && strcmp(fSDPMediaTypeString, "audio") != 0;
+ManifestRTPSink::~ManifestRTPSink()
+{
 }

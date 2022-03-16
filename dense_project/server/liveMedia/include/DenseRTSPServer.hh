@@ -6,16 +6,23 @@
 #include "MPEG2TransportStreamFramer.hh"
 #include "GroupsockHelper.hh"
 
-#include "CheckSource.hh"
+class ManifestRTPSink; // Forward
+
+#ifndef _MANIFEST_RTP_SINK_HH
 #include "ManifestRTPSink.hh"
+#endif
+
+#ifndef _CHECK_SOURCE_HH
+#include "CheckSource.hh"
+#endif
 
 #include <string>
 
 #define TRANSPORT_PACKET_SIZE 188
 #define TRANSPORT_PACKETS_PER_NETWORK_PACKET 7
 
-///// DENSE RTSP SERVER /////
-class DenseRTSPServer : public RTSPServer
+    ///// DENSE RTSP SERVER /////
+    class DenseRTSPServer : public RTSPServer
 {
 public:
   static DenseRTSPServer *createNew(
@@ -63,7 +70,7 @@ private:
   Boolean fAllowStreamingRTPOverTCP;
   HashTable *fTCPStreamingDatabase;
 
-  HashTable *fDenseTable;
+  [[maybe_unused]] HashTable *fDenseTable; // TODO: Unused
 
   // TODO: Is this class needed?
   // A data structure that is used to implement "fTCPStreamingDatabase"
