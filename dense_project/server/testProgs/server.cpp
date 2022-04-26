@@ -17,40 +17,46 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 // A test program for the dense server
 // main program
 
-
 #include "BasicUsageEnvironment.hh"
 
 #include "../liveMedia/include/DenseRTSPServer.hh"
 
 #include <string>
 
-UsageEnvironment *env;
+// A function that outputs a string as a C string (for debugging output).
+UsageEnvironment &operator<<(UsageEnvironment &env, std::string string)
+{
+  return env << string.c_str();
+}
 
 int main(int argc, char **argv)
 {
   // Begin by setting up our usage environment
   TaskScheduler *taskScheduler = BasicTaskScheduler::createNew();
-  env = BasicUsageEnvironment::createNew(*taskScheduler);
-  
-  int port = 51273; // TODO: why this port?
+  UsageEnvironment *env = BasicUsageEnvironment::createNew(*taskScheduler);
+
+  int port = 51273;                  // TODO: why this port?
   unsigned reclamationSeconds = 65U; // TODO: what does this signify?
-  int count = 3;
-  std::string name = argv[1];
-  std::string time = argv[2];
-  std::string alias = "denseServer";
+  int levels = 3;                    // Number of quality levels for the server to serve
+  std::string path = argv[1];        // Path of the running program
+  std::string fps = argv[2];        // Framerate for the transmission
+  std::string alias = "denseServer"; // TODO: Is alias the most appropriate name? Just use name?
 
-  fprintf(stderr, "Starting server!\n");
-  fprintf(stderr,
-          "port: %d\nreclamationSeconds: %u\ncount: %d\nname: %s\ntime: %s\nalias: %s\n",
-          port, reclamationSeconds, count, name.c_str(), time.c_str(), alias.c_str());
+  *env << "Starting RTSP server!\n";
+  *env << "port: " << port << "\n"
+       << "reclamationSeconds: " << reclamationSeconds << "\n"
+       << "levels: " << levels << "\n"
+       << "path: " << path << "\n"
+       << "fps: " << fps << "\n"
+       << "alias: " << alias << "\n";
 
-  
   DenseRTSPServer *denseRTSPServer = DenseRTSPServer::createNew(
-      *env, port, NULL, reclamationSeconds, NULL, count, name, time, alias);
+      *env, port, NULL, reclamationSeconds, NULL, levels, path, fps, alias);
 
   if (denseRTSPServer == NULL)
   {
     *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+    exit(EXIT_FAILURE);
   }
 
   env->taskScheduler().doEventLoop(); // Does not return

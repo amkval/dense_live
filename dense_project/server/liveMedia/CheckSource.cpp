@@ -13,44 +13,54 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 **********/
+// TODO: additional information
 
 #include "InputFile.hh"
-
-#include "include/CheckSource.hh"
 #include "GroupsockHelper.hh"
 
-CheckSource *CheckSource::createNew(UsageEnvironment &env, std::string fileName, unsigned preferredFrameSize, unsigned playTimePerFrame)
+#include "include/CheckSource.hh"
+
+CheckSource *CheckSource::createNew(
+    UsageEnvironment &env,
+    std::string fileName,
+    unsigned preferredFrameSize,
+    unsigned playTimePerFrame)
 {
-  fprintf(stderr, "Constructing 'CheckSource' \n");
+  env << "Constructing 'CheckSource' \n";
 
   FILE *fid = OpenInputFile(env, (const char *)fileName.c_str()); // TODO: is this cast legal?
   if (fid == NULL)
   {
-    return NULL; // TODO: verify error handeling!
+    return NULL;
   }
 
-  CheckSource *checkSource = new CheckSource(env, fid, preferredFrameSize, playTimePerFrame);
+  CheckSource *checkSource = new CheckSource(
+      env,
+      fid,
+      preferredFrameSize,
+      playTimePerFrame);
 
+  // TODO: use setters?
   checkSource->fChunkCount = checkSource->stripChunks();
   checkSource->fPath = checkSource->stripPath(fileName);
 
   std::string newPath = checkSource->fPath + (char *)checkSource->fChunks[0]; // TODO: do we need cast?
-  newPath.erase(newPath.length() - 1); // TODO: Make better solution
+  newPath.erase(newPath.length() - 1);                                        // TODO: Make better solution
 
-  fprintf(stderr, "newPath: %s\n", newPath.c_str());
-  fprintf(stderr, "checkSource->fPath: %s, %s\n", checkSource->fPath.c_str(), checkSource->fChunks[0]);
+  env << "newPath: " << newPath.c_str() << "\n";
+  env << "checkSource->fPath: " << checkSource->fPath.c_str() << ", " << checkSource->fChunks[0] << "\n";
 
   FILE *newFid = OpenInputFile(env, newPath.c_str());
   if (newFid == NULL)
   {
-    fprintf(stderr, "%s", env.getResultMsg());
-    return NULL; // TODO: Verify error handeling
+    return NULL;
   }
 
   checkSource->fFid = newFid;
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
 
-  fprintf(stderr, "checkSource->fFileSize: %ld\n", checkSource->fFileSize);
+  // TODO: potentially print uint64_t
+  //env << "checkSource->fFileSize: " <<  checkSource->fFileSize << "\n";
 
   return checkSource;
 }
@@ -101,11 +111,11 @@ int CheckSource::stripChunks()
     {
       memcpy(fChunks[chunkCount], line, strlen(line) + 1);
       chunkCount++;
-      //fprintf(stderr, "added: chunkCount: %d, lineCount: %d, line: %s\n", chunkCount, lineCount, line);
+      // fprintf(stderr, "added: chunkCount: %d, lineCount: %d, line: %s\n", chunkCount, lineCount, line);
     }
     else
     {
-      //fprintf(stderr, "skipped: lineCount: %d, line: %s\n", lineCount + 1, line);
+      // fprintf(stderr, "skipped: lineCount: %d, line: %s\n", lineCount + 1, line);
     }
     lineCount++;
   }
@@ -219,7 +229,7 @@ int CheckSource::manageManifest()
   if ((fFileSize - fReadSoFar) == 0 && fCurrentChunk <= fChunkCount)
   {
     fCurrentChunk++;
-    
+
     std::string newPath = fPath + (char *)fChunks[fCurrentChunk]; // TODO: do we need cast?
     newPath.erase(newPath.length() - 1);                          // TODO: Make better solution
 

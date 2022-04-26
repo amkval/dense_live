@@ -13,12 +13,15 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 **********/
-
-#include "include/DenseRTSPServer.hh"
+// TODO: additional information
 
 #include "GroupsockHelper.hh"
 
-///// DenseRTSPServer /////
+#include "include/DenseRTSPServer.hh"
+
+#include <string>
+
+////// DenseRTSPServer //////
 
 DenseRTSPServer *DenseRTSPServer::createNew(
     UsageEnvironment &env,
@@ -26,45 +29,34 @@ DenseRTSPServer *DenseRTSPServer::createNew(
     UserAuthenticationDatabase *authDatabase,
     u_int reclamationSeconds,
     Boolean streamRTPOverTCP,
-    int count,
-    std::string name,
-    std::string time,
+    int levels,
+    std::string path,
+    std::string fps,
     std::string alias)
 {
 
+  // Setup socket
   int socket = setUpOurSocket(env, port);
   if (socket == -1)
   {
     return NULL;
   }
 
-  DenseRTSPServer *denseRTSPServer = new DenseRTSPServer(env, socket, port, authDatabase, reclamationSeconds, streamRTPOverTCP, count, name, alias);
+  DenseRTSPServer *denseRTSPServer = new DenseRTSPServer(
+      env, socket, port, authDatabase, reclamationSeconds,
+      streamRTPOverTCP, levels, path, fps, alias);
 
-  // TODO: Where do we move this and what values do we need?
-  // denseRTSPServer->initDenseValues();
+  // TODO: Move initialization to a better place:
+  denseRTSPServer->fNextServer = NULL; // What is this used for?
+  //denseRTSPServer->fStartPort = port.num(); Moved
 
-  // TODO: Move these assignments
-  //denseRTSPServer->fTime = stoi(time);
-  //denseRTSPServer->fNextServer = NULL;
-  //denseRTSPServer->fBeforeServer = NULL;
+  env << "DenseRTSPServer: "
+      << "TODO: print all densRTSPServer info\n";
 
   gettimeofday(&denseRTSPServer->fStartTime, NULL);
 
-  // Print time for test:
-  time_t nowtime;
-  struct tm *nowtm;
-  char tmbuf[64], buf[64];
-
-  nowtime = denseRTSPServer->fStartTime.tv_sec;
-  nowtm = localtime(&nowtime);
-  strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
-  snprintf(buf, sizeof buf, "%s.%06ld", tmbuf, denseRTSPServer->fStartTime.tv_usec);
-
-  fprintf(stderr, "RTSPDenseServer::createNew - presentation time -> %lu %lu\n", denseRTSPServer->fStartTime.tv_sec, denseRTSPServer->fStartTime.tv_usec);
-  fprintf(stderr, "RTSPDenseServer::createNew - presentation time -> %s\n\n", buf);
-
   // Make a 'DenseSession' for each quality level
-  for (int i = 0; i < denseRTSPServer->fCount; i++)
+  for (int i = 0; i < denseRTSPServer->fLevels; i++)
   {
     denseRTSPServer->make(i);
   }
@@ -76,11 +68,13 @@ DenseRTSPServer::DenseRTSPServer(
     UsageEnvironment &env, int socket, Port port,
     UserAuthenticationDatabase *authDatabase,
     unsigned reclamationSeconds,
-    Boolean streamRTPOverTCP, int count, std::string name, std::string alias)
+    Boolean streamRTPOverTCP, int levels, std::string path, std::string fps, std::string alias)
     : RTSPServer(env, socket, port, authDatabase, reclamationSeconds),
       fDenseTable(HashTable::create(ONE_WORD_HASH_KEYS)),
-      fCount(count), fName(name), fAlias(alias), fStartPort(port.num())
+      fLevels(levels), fPath(path), fAlias(alias), fStartPort(port.num()),
+      fStartTime({0}), fFPS(std::stoi(fps)), fNextServer(NULL)
 {
+  //TODO: What about the other stuff that i left out?
 }
 
 DenseRTSPServer::~DenseRTSPServer()
@@ -88,28 +82,32 @@ DenseRTSPServer::~DenseRTSPServer()
   cleanup();
 }
 
-void DenseRTSPServer::make(int number)
+void DenseRTSPServer::make(int level)
 {
-  fprintf(stderr, "Making DenseSession with id: %i, name %s, and startPort %d\n", number, fAlias.c_str(), fStartPort);
+  UsageEnvironment &env = envir(); // TODO: get from somewhere else?
 
-  // TODO: do we need a new UsageEnvironment? Try to use the same?
-  UsageEnvironment &env = envir();
+  // TODO: use constom print
+  env << "Making DenseSession with id: " << level << ", name " << fAlias.c_str() << ", and startPort " << fStartPort << "\n";
 
-  DenseSession *denseSession = createNewDenseSession();
+  DenseSession *denseSession = createNewDenseSession(); // TODO: why not createNew() ?
 
   // Create 'ServerMediaSession'
-  std::string denseName(fAlias + std::to_string(number));
-  fprintf(stderr, "denseName: %s\n", denseName.c_str());
+  std::string denseName = fAlias + std::to_string(level);
+  env << "denseName: " << denseName.c_str() << "\n";
 
   ServerMediaSession *sms = ServerMediaSession::createNew(
-      env, denseName.c_str(), NULL, "Session streamed by 'denseServer'", False,
-      "miscSDPLines");
+      env, 
+      denseName.c_str(),
+      NULL,
+      "Session streamed by \"denseServer\"",
+      False,
+      "a=x-qt-text-misc:yo yo mood"); // TODO: Change "yo yo mood" to something more appropriate
   addServerMediaSession(sms);
 
-  // Sleep to give us some time to kill the program(?)
-  if (fStartPort == 18888)
+  // Sleep to give us some time to kill the program
+  if (fStartPort == 18888) // TODO: can be removed.
   {
-    fprintf(stderr, "Sleeping for 1 second\n");
+    env << "Sleeping for 1 second\n";
     sleep(1);
   }
 
@@ -119,29 +117,42 @@ void DenseRTSPServer::make(int number)
   struct in_addr destinaionAddress;
   destinaionAddress.s_addr = chooseRandomIPv4SSMAddress(env);
 
-  const unsigned short rtpPortNum = fStartPort + (number * 2);
-  fprintf(stderr, "rtpPortNum: %hu\n", rtpPortNum);
+  const unsigned short rtpPortNum = fStartPort + (level * 2);
+  env << "rtpPortNum: " << rtpPortNum << "\n";
 
   const unsigned short rtcpPortNum = rtpPortNum + 1;
-  fprintf(stderr, "rtcpPortNum: %hu\n", rtcpPortNum);
-
-  const unsigned char ttl = 255;
+  env << "rtcpPortNum: " << rtcpPortNum << "\n";
 
   Port rtpPort(rtpPortNum);
   Port rtcpPort(rtcpPortNum);
 
+  const unsigned char ttl = 255;
+
   denseSession->setRTPGroupsock(env, destinaionAddress, rtpPort, ttl);
   denseSession->setRTCPGroupsock(env, destinaionAddress, rtcpPort, ttl);
 
-  fprintf(stderr, "Make Video Sink\n");
+  // Make VideoSink or ManifestRTPSink
+  env << "Make Video Sink\n";
 
   // Create 'H264 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 100000; // TODO: Do we need to do this here every time?
 
-  ManifestRTPSink *manifestRTPSink = ManifestRTPSink::createNew(env, denseSession->fRTPGroupsock, 96, 90000, "video", "MP2T", this, 1, True, False, denseName.c_str());
+  ManifestRTPSink *manifestRTPSink = ManifestRTPSink::createNew(
+      env, 
+      denseSession->fRTPGroupsock, 
+      96, 
+      90000, 
+      "video", 
+      "MP2T",
+      this, 
+      1, 
+      True, 
+      False, 
+      denseName.c_str());
   denseSession->setVideoSink(manifestRTPSink);
 
-  fprintf(stderr, "Make RTCP Instance\n");
+  // Make RTCP Instance 
+  env << "Make RTCP Instance\n";
 
   // Create and start a 'RTCP instance' for this RTP sink:
   const unsigned estimatedSessionBandwidth = 500; // in kbps; for RTCP b/w share
@@ -151,22 +162,29 @@ void DenseRTSPServer::make(int number)
   CNAME[maxCNAMElen] = '\0'; // just in case
 
   RTCPInstance *rtcpInstance = RTCPInstance::createNew(
-      env, denseSession->fRTCPGroupsock, estimatedSessionBandwidth,
-      CNAME, denseSession->fVideoSink, NULL, True);
+      env, 
+      denseSession->fRTCPGroupsock, 
+      estimatedSessionBandwidth,
+      CNAME, 
+      (RTPSink *)denseSession->fVideoSink, 
+      NULL, 
+      True);
   denseSession->setRTCP(rtcpInstance);
 
-  fprintf(stderr, "Make Passive Server Media Subsession\n");
+  // Make 'PassiveServerMediaSubsession'
+  env << "Make Passive Server Media Subsession\n";
 
-  sms->addSubsession(PassiveServerMediaSubsession::createNew(*denseSession->fVideoSink, denseSession->fRTCP));
+  sms->addSubsession(PassiveServerMediaSubsession::createNew((RTPSink &)*denseSession->fVideoSink, denseSession->fRTCP));
 
-  fprintf(stderr, "Making CheckSource\n");
-  // TODO: make dynamic, argv or something!
+  // Make 'CheckSource'
+  env << "Make CheckSource\n";
 
-  std::string base = fName;
+  // TODO: make dynamic?
+  std::string base = fPath;
   std::string one = "first.m3u8";
   std::string two = "second.m3u8";
   std::string three = "third.m3u8";
-  switch (number)
+  switch (level)
   {
   case 0:
     base += one;
@@ -177,20 +195,17 @@ void DenseRTSPServer::make(int number)
   case 2:
     base += three;
   default:
-    fprintf(stderr, "The number is outside the expected values!\n");
-    break;
+    env << "Level \"" << level << "\" is outside the expected values!\n";
+    exit(EXIT_FAILURE);
   }
+  strcpy(denseSession->fSessionManifest, base.c_str()); // TODO: Better method than strcpy?
 
-  strcpy(denseSession->fSessionManifest, base.c_str());
   unsigned const inputDataChunkSize = TRANSPORT_PACKETS_PER_NETWORK_PACKET * TRANSPORT_PACKET_SIZE;
-
-  // Make 'FileSource'
-  CheckSource *fileSource = CheckSource::createNew(env /*envir()*/, denseSession->fSessionManifest, inputDataChunkSize);
+  CheckSource *fileSource = CheckSource::createNew(env, denseSession->fSessionManifest, inputDataChunkSize);
   if (fileSource == NULL)
   {
-    //env << "Unable to open file \"" << sms->streamFile() << "\" as a byte-stream file source\n";
-    env << "Unable to open file as a byte-stream file source\n";
-    exit(1);
+    env << "Unable to open file as a byte-stream file source: " << env.getResultMsg() << "\n";
+    exit(EXIT_FAILURE);
   }
 
   denseSession->setFileSource(fileSource);
@@ -200,46 +215,83 @@ void DenseRTSPServer::make(int number)
   // Make 'videoSource'
   MPEG2TransportStreamFramer *videoSource = MPEG2TransportStreamFramer::createNew(env, denseSession->fFileSource);
   denseSession->setVideoSource(videoSource);
-  //denseSession->fVideoSource->removeLookAside(); // TODO: why??
+  // denseSession->fVideoSource->removeLookAside(); // TODO: why??
 
-  // Start Playing
-  denseSession->fVideoSink->startPlaying(*videoSource, NULL/*afterPlaying*/, denseSession->fVideoSink);
+  env << "Start Playing\n";
 
-  fprintf(stderr, "Add DenseSession to DenseTable.\n");
+  denseSession->fVideoSink->startPlaying(*videoSource, NULL /*afterPlaying*/, denseSession->fVideoSink);
 
-  fDenseTable->Add((char const *)number, denseSession);
+  env << "Add DenseSession to DenseTable\n";
 
-  fprintf(stderr, "Finish Make.\n");
+  fDenseTable->Add((char const *)level, denseSession);
+
+  env << "Make finished\n";
 }
 
 void DenseRTSPServer::DenseSession::setRTPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl)
 {
-  fprintf(stderr, "setRTPGroupsock\n");
+  env << "setRTPGroupsock\n";
   Groupsock *gsock = new Groupsock(env, destinationAddress, rtpPort, ttl);
   fRTPGroupsock = gsock;
 
   AddressString groupAddressStr(fRTPGroupsock->groupAddress());
-  fprintf(stderr, "       setRTPGSock -> AddressString groupAddressStr: %s\n", groupAddressStr.val());
+  env << "       setRTPGSock -> AddressString groupAddressStr: " << groupAddressStr.val() << "\n";
   unsigned short portNum = ntohs(fRTPGroupsock->port().num());
-  fprintf(stderr, "       setRTPGSock -> portnum: %hu\n", portNum);
+  env << "       setRTPGSock -> portnum: " << portNum << "\n";
 }
 
+// TODO: Remove duplicate code?
 void DenseRTSPServer::DenseSession::setRTCPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl)
 {
-  fprintf(stderr, "setRTCPGroupsock\n");
+  env << "setRTCPGroupsock\n";
   Groupsock *gsock = new Groupsock(env, destinationAddress, rtpPort, ttl);
   fRTCPGroupsock = gsock;
 
   AddressString groupAddressStr(fRTCPGroupsock->groupAddress());
-  fprintf(stderr, "       setRTPCONTROL gsock -> AddressString groupAddressStr: %s\n", groupAddressStr.val());
+  env << "       setRTPCONTROL gsock -> AddressString groupAddressStr: " << groupAddressStr.val() << "\n";
   unsigned short portNum = ntohs(fRTCPGroupsock->port().num());
-  fprintf(stderr, "       setRTPCONTROL gsock -> portnum: %hu\n", portNum);
+  env << "       setRTPCONTROL gsock -> portnum: " << portNum << "\n";
+}
+
+// TODO: implement
+void DenseRTSPServer::afterPlaying(void * /*clientData*/)
+{
+  for (int i = 0; i < fLevels; i++)
+  {
+    DenseSession *denseSession = (DenseSession *)fDenseTable->Lookup((char const *)i);
+    if (denseSession != NULL)
+    {
+      denseSession->fVideoSink->stopPlaying();
+      Medium::close(denseSession->fVideoSink);
+      Medium::close(denseSession->fRTCP);
+    }
+  }
+}
+
+void DenseRTSPServer::makeNextTuple()
+{
+  std::string newstream = "newStream";
+
+  DenseRTSPServer *rtspServer = DenseRTSPServer::createNew(
+      envir(),
+      htons(fStartPort) + 10,
+      NULL,
+      65U,
+      NULL,
+      fLevels,
+      fPath,
+      std::to_string(fFPS),
+      newstream);
+
+  fNextServer = rtspServer;
+
+  fprintf(stderr, "makeNextTuple() startPort: %d\n", fStartPort);
+  sleep(2); // TODO: Remove?
 }
 
 ///// DenseSession /////
 
 DenseRTSPServer::DenseSession *DenseRTSPServer::createNewDenseSession()
 {
-  fprintf(stderr, "Creating new 'DenseSession'\n");
   return new DenseSession();
 }

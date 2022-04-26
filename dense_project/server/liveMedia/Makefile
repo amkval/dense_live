@@ -9,7 +9,15 @@ all:
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./CheckSource.cpp
 
+	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseMultiFramedRTPSink.cpp
+
+	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DensePassiveServerMediaSubsession.cpp
+
+	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseRTPSink.cpp
+
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseRTSPServer.cpp
+
+	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseServerMediaSession.cpp
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./ManifestRTPSink.cpp
 	

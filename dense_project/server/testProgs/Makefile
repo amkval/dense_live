@@ -5,23 +5,25 @@ LIBS = $(LIVE_DIR)liveMedia/libliveMedia.a $(LIVE_DIR)groupsock/libgroupsock.a $
 
 # Test programs
 SERVER = server
-CLIENT = client
 
 # Dense files
-DENSE_RTSP_SERVER = "../liveMedia/DenseRTSPServer"
-MANIFEST_RTP_SINK = "../liveMedia/ManifestRTPSink"
-CHECK_SOURCE = "../liveMedia/CheckSource"
+CSOURCE = "../liveMedia/CheckSource"
+DMFRTPSINK = "../liveMedia/DenseMultiFramedRTPSink"
+DPSMSUBSESSION = "../liveMedia/DensePassiveServerMediaSubsession"
+DRTPSINK = "../liveMedia/DenseRTPSink"
+DRTSPSERVER = "../liveMedia/DenseRTSPServer"
+DSMSESSION = "../liveMedia/DenseServerMediaSession"
+MRTPSINK = "../liveMedia/ManifestRTPSink"
 
 # enable optimization by changing -O0 to -O
 server:
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(SERVER).cpp
-	c++ -g -o $(SERVER) -L. $(DENSE_RTSP_SERVER).o $(MANIFEST_RTP_SINK).o $(CHECK_SOURCE).o $(SERVER).o $(LIBS)
+	c++ -g -o $(SERVER) -L. $(SERVER).o $(CSOURCE).o $(DMFRTPSINK).o $(DPSMSUBSESSION).o $(DRTPSINK).o $(DRTSPSERVER).o $(DSMSESSION).o $(MRTPSINK).o $(LIBS)
 
 .PHONY: clean all
 all: server
 
 clean:
 	rm -f $(SERVER)
-	rm -f $(CLIENT)
 	rm -f *.o
 	rm -f *.a

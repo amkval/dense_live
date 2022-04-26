@@ -1,19 +1,38 @@
+/**********
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version. (See <http://www.gnu.org/copyleft/lesser.html>.)
+
+This library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+**********/
+// TODO: additional information
+
 #ifndef _MANIFEST_RTP_SINK_HH
 #define _MANIFEST_RTP_SINK_HH
 
-#include "MultiFramedRTPSink.hh"
-
 class DenseRTSPServer; // Forward
-
-#ifndef _DENSE_RTSP_SERVER_HH
-#include "DenseRTSPServer.hh"
-#endif
 
 #ifndef _CHECK_SOURCE_HH
 #include "CheckSource.hh"
 #endif
 
-class ManifestRTPSink : public MultiFramedRTPSink
+#ifndef _DENSE_MULTI_FRAMED_RTP_SINK_HH
+#include "DenseMultiFramedRTPSink.hh"
+#endif
+
+#ifndef _DENSE_RTSP_SERVER_HH
+#include "DenseRTSPServer.hh"
+#endif
+
+class ManifestRTPSink : public DenseMultiFramedRTPSink
 {
 public:
   static ManifestRTPSink *createNew(
@@ -51,14 +70,43 @@ public:
     fCheckSource = checkSource;
   }
 
-protected:
-  CheckSource *fCheckSource;
-  // TODO: Are all of these used?
+protected: // redefined virtual functions
+  virtual void doSpecialFrameHandling(
+      unsigned fragmentationOffset,
+      unsigned char *frameStart,
+      unsigned numBytesInFrame,
+      struct timeval framePresentationTime,
+      unsigned numRemainingBytes);
+
+protected: // redefined virtual functions:
+  // virtual Boolean continuePlaying(); TODO: Unused?
+  void buildAndSendPacket(Boolean isFirstPacket);
+  static void sendNext(void *firstArg);
+  friend void sendNext(void *);
+  void packFrame();
+  void sendPacketIfNecessary();
+
+  static void afterGettingFrame(
+      void *clientData,
+      unsigned numBytesRead,
+      unsigned numTruncatedBytes,
+      struct timeval presentationTime,
+      unsigned durationInMicroseconds);
+  void afterGettingFrame1(
+      unsigned numBytesRead,
+      unsigned numTruncatedBytes,
+      struct timeval presentationTime,
+      unsigned durationInMicroseconds);
+
+private:
+  char const *fSDPMediaTypeString;
   Boolean fAllowMultipleFramesPerPacket;
-  Boolean fSetMBitOnNextPacket;
-  std::string fSDPMediaTypeString;
-  std::string fName;
-  Boolean fSetMBitOnLastFrames;
+  Boolean fSetMBitOnLastFrames, fSetMBitOnNextPacket;
+  CheckSource *fCheckSource;
+  const char *fName;
+
+public:
+  DenseRTSPServer *fOurServer; //TODO: Rename
 };
 
 #endif
