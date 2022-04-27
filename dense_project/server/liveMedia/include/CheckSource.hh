@@ -64,8 +64,8 @@ protected:
 private:
   unsigned fPreferredFrameSize;
   unsigned fPlayTimePerFrame;
-  Boolean fFidIsSeekable;
   unsigned fLastPlayTime;
+  Boolean fFidIsSeekable;
   Boolean fHaveStartedReading;
   Boolean fLimitNumBytesToStream;
   u_int64_t fNumBytesToStream; // used iff "fLimitNumBytesToStream" is True

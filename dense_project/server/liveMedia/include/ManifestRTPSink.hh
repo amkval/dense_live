@@ -79,7 +79,7 @@ protected: // redefined virtual functions
       unsigned numRemainingBytes);
 
 protected: // redefined virtual functions:
-  // virtual Boolean continuePlaying(); TODO: Unused?
+  virtual Boolean continuePlaying(); //TODO: Unused? NO, very used!
   void buildAndSendPacket(Boolean isFirstPacket);
   static void sendNext(void *firstArg);
   friend void sendNext(void *);

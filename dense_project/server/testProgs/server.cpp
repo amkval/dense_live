@@ -40,7 +40,7 @@ int main(int argc, char **argv)
   int levels = 3;                    // Number of quality levels for the server to serve
   std::string path = argv[1];        // Path of the running program
   std::string fps = argv[2];        // Framerate for the transmission
-  std::string alias = "denseServer"; // TODO: Is alias the most appropriate name? Just use name?
+  std::string alias = "makeStream"; // TODO: Is alias the most appropriate name? Just use name?
 
   *env << "Starting RTSP server!\n";
   *env << "port: " << port << "\n"
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
        << "alias: " << alias << "\n";
 
   DenseRTSPServer *denseRTSPServer = DenseRTSPServer::createNew(
-      *env, port, NULL, reclamationSeconds, NULL, levels, path, fps, alias);
+      *env, port, NULL, reclamationSeconds, NULL, levels, (char *)path.c_str(), fps, alias);
 
   if (denseRTSPServer == NULL)
   {

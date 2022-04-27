@@ -18,13 +18,16 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #ifndef _DENSE_RTSP_SERVER_HH
 #define _DENSE_RTSP_SERVER_HH
 
+// Forward class Definitions
+class ManifestRTPSink;
+
+// Live Imports
 #include "RTSPServer.hh"
 #include "PassiveServerMediaSubsession.hh"
 #include "MPEG2TransportStreamFramer.hh"
 #include "GroupsockHelper.hh"
 
-class ManifestRTPSink; // Forward
-
+// Dense Imports
 #ifndef _MANIFEST_RTP_SINK_HH
 #include "ManifestRTPSink.hh"
 #endif
@@ -33,12 +36,16 @@ class ManifestRTPSink; // Forward
 #include "CheckSource.hh"
 #endif
 
+// Other Imports
 #include <string>
 
 #define TRANSPORT_PACKET_SIZE 188
 #define TRANSPORT_PACKETS_PER_NETWORK_PACKET 7
 
-    ///// DENSE RTSP SERVER /////
+///// DENSE RTSP SERVER /////
+class RTSPDenseClientConnection; // Forward
+class RTSPDenseClientSession;    // Forward
+class DenseSession;              // Forward
 class DenseRTSPServer : public RTSPServer
 {
 public:
@@ -49,20 +56,9 @@ public:
       u_int reclamationSeconds = 65U,
       Boolean streamRTPOverTCP = False,
       int levels = 1,
-      std::string path = "", //TODO: do something else?
-      std::string fps = "", //TODO: do something else?
-      std::string alias = ""); //TODO: do something else?
-
-  int fLevels;               // Quality level count
-  std::string fPath;         // used to be name
-  std::string fAlias;        // Alias of ???, file descriptor? TODO: Better name or understanding!
-  uint16_t fStartPort;       // TODO: verify type // TODO: is this needed? port is already a thing, no?
-  struct timeval fStartTime; // Start time of the server.
-
-  int fFPS;                     // Used to be 'time'
-  DenseRTSPServer *fNextServer; // TODO: What is this used for?
-
-  void makeNextTuple();
+      std::string path = "",   // TODO: do something else?
+      std::string fps = "",    // TODO: do something else?
+      std::string alias = ""); // TODO: do something else?
 
 protected:
   DenseRTSPServer(
@@ -78,55 +74,53 @@ protected:
       std::string alias);
   virtual ~DenseRTSPServer();
 
+public:
+  void makeNextTuple();
+
+protected:
   void getQualityLevelSDP(std::string &linePointer);
   void make(int number);
-  void getFile(int /*???*/, char *pointer);
+  // void getFile(int /*???*/, char *pointer); TODO: Not used?
   ServerMediaSession *findSession(char const *streamName);
 
 private:
-  void afterPlaying(void */* clientData */); // TODO: used to be afterPlaying1
-
-  // TODO: Are these three needed?
-  Boolean fStreamRTPOverTCP;
-  Boolean fAllowStreamingRTPOverTCP;
-  HashTable *fTCPStreamingDatabase;
-
-  HashTable *fDenseTable; // Used for cleanup
-
-  // TODO: Is this class needed?
-  // A data structure that is used to implement "fTCPStreamingDatabase"
-  // (and the "noteTCPStreamingOnSocket()" and "stopTCPStreamingOnSocket()" member functions):
-  class streamingOverTCPRecord
-  {
-  public:
-    streamingOverTCPRecord(u_int32_t sessionId, unsigned trackNum, streamingOverTCPRecord *next)
-        : fNext(next), fSessionId(sessionId), fTrackNum(trackNum)
-    {
-    }
-    virtual ~streamingOverTCPRecord()
-    {
-      delete fNext;
-    }
-
-    streamingOverTCPRecord *fNext;
-    u_int32_t fSessionId;
-    unsigned fTrackNum;
-  };
+  static void afterPlaying1(void * /* clientData */); // TODO: name?
 
 public:
+  int fLevels;               // Quality level count
+  std::string fPath;         // used to be name
+  std::string fAlias;        // Alias of ???, file descriptor? TODO: Better name or understanding!
+  uint16_t fStartPort;       // TODO: verify type // TODO: is this needed? port is already a thing, no?
+  struct timeval fStartTime; // Start time of the server.
+
+  int fFPS;                     // Used to be 'time'
+  DenseRTSPServer *fNextServer; // TODO: What is this used for?
+
+private:
+  Boolean fStreamRTPOverTCP;         // TODO: Used?
+  Boolean fAllowStreamingRTPOverTCP; // TODO: Used?
+  HashTable *fTCPStreamingDatabase;  // TODO: Used?
+
+  HashTable *fDenseTable; // Storage for denseSessions.
+
+  ////// DenseSession //////
+public:
+  // Class that keeps track of session variables.
   class DenseSession
   {
   public:
-    DenseSession()
-    {
-    }
+    DenseSession(DenseRTSPServer *denseServer);
+    ~DenseSession();
 
-    ~DenseSession()
-    {
-    }
-
-    void setRTPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl);
-    void setRTCPGroupsock(UsageEnvironment &env, in_addr destinationAddress, Port rtpPort, u_int8_t ttl);
+  public:
+    void setRTPGroupsock(
+        UsageEnvironment &env,
+        in_addr destinationAddress,
+        Port rtpPort, u_int8_t ttl);
+    void setRTCPGroupsock(
+        UsageEnvironment &env,
+        in_addr destinationAddress,
+        Port rtpPort, u_int8_t ttl);
 
     void setVideoSink(ManifestRTPSink *manifestRTPSink)
     {
@@ -153,35 +147,97 @@ public:
       fVideoSource = videoSource;
     }
 
-    // Sockets for RTP and RTCP
-    Groupsock *fRTPGroupsock;
-    Groupsock *fRTCPGroupsock;
-
-    // RTP
-    ManifestRTPSink *fVideoSink;
-
-    // RTCP
-    RTCPInstance *fRTCP;
-
-    // Passive
-    PassiveServerMediaSubsession *fPassiveSession;
-
-    // Session
-    ServerMediaSession *fServerMediaSession;
-
-    // FileSource
-    CheckSource *fFileSource;
-
-    // VideoSource
-    MPEG2TransportStreamFramer *fVideoSource;
-
-    
-    DenseRTSPServer *fDenseServer;
-
-    char fSessionManifest[100]; // TODO: can this be stored in another way?
+  public:
+    Groupsock *fRTPGroupsock;                      // Socket for RTP
+    Groupsock *fRTCPGroupsock;                     // Socket for RTCP
+    ManifestRTPSink *fVideoSink;                   // RTP VideoSink
+    RTCPInstance *fRTCP;                           // RTCP Instance
+    PassiveServerMediaSubsession *fPassiveSession; // Passive Server Media Subsession
+    ServerMediaSession *fServerMediaSession;       // Server Media Session
+    CheckSource *fFileSource;                      // File Source
+    MPEG2TransportStreamFramer *fVideoSource;      // Video Source
+    DenseRTSPServer *fDenseServer;                 // Dense Server
+    char fSessionManifest[100];                    // TODO: can this be stored in another way?
   };
 
-  DenseSession *createNewDenseSession();
+  DenseSession *createNewDenseSession(DenseRTSPServer *denseServer); // TODO: why is this not a part of DenseSession?
+
+public:
+  ////// DenseClientConnection //////
+  // The state of a TCP connection used by a RTSP client:
+  class DenseRTSPClientSession; // forward
+  class DenseRTSPClientConnection : public RTSPServer::RTSPClientConnection
+  {
+
+  public:
+    void handleRequestBytes(int newBytesRead);
+    void handleCmd_OPTIONS(char *urlSuffix);
+    void handleCmd_DESCRIBE(char const *urlPreSuffix, char const *urlSuffix, char const *fullRequestStr);
+
+  protected:
+    DenseRTSPClientConnection(DenseRTSPServer &ourServer, int clientSocket, struct sockaddr_in clientAddr);
+    virtual ~DenseRTSPClientConnection();
+
+    friend class DenseRTSPServer;
+    friend class RTSPServer;
+
+    DenseRTSPServer &fDenseRTSPServer;
+    DenseRTSPClientSession *fDenseRTSPClientSession;
+
+  private:
+    friend class DenseRTSPClientSession;
+  };
+
+protected: // redefined virtual functions
+  // If you subclass "RTSPClientConnection", then you must also redefine this virtual function in order
+  // to create new objects of your subclass:
+  virtual DenseRTSPClientConnection *createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr);
+
+  ////// RTSP Dense CLient Session //////
+public:
+  class DenseRTSPClientSession : public RTSPServer::RTSPClientSession
+  {
+  public:
+    void handleCmd_SETUP_1(DenseRTSPServer::DenseRTSPClientConnection *ourClientConnection,
+                           char const *urlPreSuffix, char const *urlSuffix, char const *fullRequestStr);
+
+    void handleCmd_SETUP_2(DenseRTSPServer::DenseRTSPClientConnection *ourClientConnection,
+                           char const *urlPreSuffix, char const *urlSuffix, char const *fullRequestStr);
+
+  protected:
+    DenseRTSPClientSession(DenseRTSPServer &ourServer, u_int32_t sessionId);
+    virtual ~DenseRTSPClientSession();
+
+    friend class DenseRTSPServer;
+    friend class RTSPServer;
+
+    DenseRTSPServer &fDenseRTSPServer;
+    DenseRTSPClientConnection *fDenseRTSPClientConnection;
+    Boolean fNewDenseRequest;
+
+  private:
+    friend class RTSPDenseClientConnection;
+  };
+
+protected:
+  // If you subclass "DenseRTSPClientSession", then you must also redefine this virtual function in order
+  // to create new objects of your subclass:
+  virtual DenseRTSPClientSession *createNewClientSession(u_int32_t sessionId);
 };
+
+// A special version of "parseTransportHeader()", used just for parsing the "Transport:" header
+// in an incoming "REGISTER" command:
+void parseTransportHeaderForREGISTER(
+    char const *buf,          // in
+    Boolean &reuseConnection, // out
+    Boolean &deliverViaTCP,   // out
+    char *&proxyURLSuffix);   // out
+
+typedef enum StreamingMode
+{
+  RTP_UDP,
+  RTP_TCP,
+  RAW_UDP
+} StreamingMode;
 
 #endif

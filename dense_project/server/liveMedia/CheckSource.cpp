@@ -60,7 +60,7 @@ CheckSource *CheckSource::createNew(
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
 
   // TODO: potentially print uint64_t
-  //env << "checkSource->fFileSize: " <<  checkSource->fFileSize << "\n";
+  env << "checkSource->fFileSize: " <<  std::to_string(checkSource->fFileSize).c_str() << "\n";
 
   return checkSource;
 }
@@ -69,7 +69,8 @@ CheckSource::CheckSource(
     UsageEnvironment &env, FILE *fid,
     unsigned preferredFrameSize,
     unsigned playTimePerFrame)
-    : FramedFileSource(env, fid), fFileSize(0), fPreferredFrameSize(preferredFrameSize),
+    : FramedFileSource(env, fid), fFileSize(0), fReadSoFar(0), fCurrentChunk(0),
+      fChunkCount(0), fPreferredFrameSize(preferredFrameSize),
       fPlayTimePerFrame(playTimePerFrame), fLastPlayTime(0),
       fHaveStartedReading(False), fLimitNumBytesToStream(False), fNumBytesToStream(0)
 {
@@ -83,6 +84,16 @@ CheckSource::CheckSource(
 
 CheckSource::~CheckSource()
 {
+  if (fFid == NULL)
+  {
+    return;
+  }
+
+#ifndef READ_FROM_FILES_SYNCHRONOUSLY
+  envir().taskScheduler().turnOffBackgroundReadHandling(fileno(fFid));
+#endif
+
+  CloseInputFile(fFid);
 }
 
 int CheckSource::stripChunks()

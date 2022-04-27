@@ -59,8 +59,8 @@ public:
 public:
   // TODO: These are moved from private to public... is this needed?
   // and how do we deal with it?
-  // ServerMediaSubsession *fDenseHead;
-  // ServerMediaSubsession *fDenseTail;
+  ServerMediaSubsession *fSubsessionsHead;
+  ServerMediaSubsession *fSubsessionsTail;
 
   std::vector<ServerMediaSubsession *> fServerMediaSubsessionVector;
 };

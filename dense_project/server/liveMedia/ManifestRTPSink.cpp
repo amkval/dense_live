@@ -65,7 +65,7 @@ ManifestRTPSink::ManifestRTPSink(
           numChannels),
       fAllowMultipleFramesPerPacket(allowMultipleFramesPerPacket),
       fSetMBitOnNextPacket(False), 
-      fCheckSource(NULL)
+      fCheckSource(NULL), fOurServer(denseRTSPServer)
 {
   fSDPMediaTypeString = sdpMediaTypeString.empty() ? "unknown" : sdpMediaTypeString.c_str();
   fName = name.empty() ? "unknown" : name.c_str();
@@ -107,6 +107,15 @@ void ManifestRTPSink::doSpecialFrameHandling(
       numRemainingBytes);
 }
 
+Boolean ManifestRTPSink::continuePlaying()
+{
+  // Send the first packet.
+  // (This will also schedule any future sends.)
+  envir() << "We are here!\n";
+  buildAndSendPacket(True);
+  return True;
+}
+
 void ManifestRTPSink::buildAndSendPacket(Boolean isFirstPacket)
 {
   nextTask() = NULL;
@@ -143,6 +152,7 @@ void ManifestRTPSink::buildAndSendPacket(Boolean isFirstPacket)
     gettimeofday(&now, NULL);
 
     int diff = now.tv_sec - fOurServer->fStartTime.tv_sec;
+    //fprintf(stderr, "ManifestRTPSink buildandsendpacket\nBREAKTIME: %d \nDIFFTIME: %d\n%d\n%d\n\n", fOurServer->fFPS, diff, fOurServer->fStartTime.tv_sec, now.tv_sec);
     if (diff >= fOurServer->fFPS)
     {
 
