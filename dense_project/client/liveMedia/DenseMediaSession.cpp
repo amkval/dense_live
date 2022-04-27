@@ -29,25 +29,34 @@ DenseMediaSession *DenseMediaSession::createNew(
     exit(EXIT_FAILURE);
   }
 
-  if(!denseMediaSession->initializeWithSDP(sdpDescription.c_str()))
+  if (!denseMediaSession->initializeWithSDP(sdpDescription.c_str()))
   {
     env << "Failed to initialize DenseMEdiaSession with sdpDescription\n";
     delete denseMediaSession;
     exit(EXIT_FAILURE);
   }
 
-  denseMediaSession->fLookAside = new unsigned char[2000000]; // TODO: Use setter? Is the size appropriate?
   return denseMediaSession;
 }
 
-DenseMediaSession::DenseMediaSession(UsageEnvironment &env) : MediaSession(env)
+DenseMediaSession::DenseMediaSession(UsageEnvironment &env)
+    : MediaSession(env), fInControl(NULL), fDenseNext(NULL),
+      fFinishLookAside(False), fPacketLoss(False), fPutInLookAsideBuffer(False),
+      fOut(NULL), fCurrentLevel(0), fLastOffset(0), fLevelDrops(0), fLookAsideSize(0),
+      fTotalDrops(0), fWritten(0),
+      fLookAside(new unsigned char[2000000]), // TODO: centralize buffer size!
+      fChunk(0), fPacketChunk(0), fRTPChunk(65535)
 {
-  // TODO: Remember to initialize variables!
+  fOut = fopen("mainStream", "wbr");
+  if (fOut == NULL)
+  {
+    env << "Failed to open file 'mainStream' in DenseMediaSession \n";
+    exit(EXIT_FAILURE);
+  }
 }
 
 DenseMediaSession::~DenseMediaSession()
 {
-
 }
 
 Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
@@ -91,7 +100,6 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
 
   // GØTE
   int level = 0;
-  fOut = fopen("mainStream", "wbr"); // TODO: is this really the place for this?
   // GØTE ^
 
   while (sdpLine != NULL)
@@ -99,7 +107,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     // We have a "m=" line, representing a new subsession:
 
     // Dense
-    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this); //TODO: did we really need to change this?
+    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this);
     // Dense ^
 
     if (subsession == NULL)
@@ -155,7 +163,6 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       }
       */
       // GØTE ^
-
     }
     else if ((sscanf(sdpLine, "m=%s %hu UDP %u",
                      mediumName, &subsession->fClientPortNum, &payloadFormat) == 3 ||
@@ -217,6 +224,9 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       ((DenseMediaSubsession *)fSubsessionsTail)->fDenseNext = subsession; // TODO: Tidy up.
       fSubsessionsTail = subsession;
     }
+    // Dense
+    fDenseMediaSubsessions.push_back(subsession);
+    // Dense ^
 
     subsession->serverPortNum = subsession->fClientPortNum; // by default
 
@@ -230,8 +240,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
 
     // GØTE
     std::string densename = "fileSink.txt"; // TODO: What kind of file is this supposed to be?
-    subsession->sink = DenseFileSink::createNew(envir(), densename.c_str());
-    ((DenseFileSink *)subsession->sink)->fMediaSession = this;
+    subsession->sink = DenseFileSink::createNew(envir(), densename.c_str(), this);
     // GØTE ^
 
     // Process the following SDP lines, up until the next "m=":
@@ -304,6 +313,12 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
   return True;
 }
 
+/**
+ * @brief looks for an 'oLine' in the 'sdpLine'
+ *
+ * @param sdpLine line to search.
+ * @return Boolean True if found, False if not.
+ */
 Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
 {
   Boolean oLine = False;
@@ -316,17 +331,22 @@ Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
     sscanf(sdpLine, "o=- %d %d IN IP4 %s", &s1, &s2, buffer);
     oLine = True;
   }
-
   delete[] buffer;
 
   return oLine;
 }
 
+/**
+ * @brief looks for a 'misc' line in the 'sdpLine'
+ *
+ * @param sdpLine Line to search.
+ * @return Boolean True if found, False if not.
+ */
 Boolean DenseMediaSession::parseSDPLine_xmisc(char const *sdpLine)
 { // a=x-qt-text-misc:yo yo mood // TODO: change to more sensible
   // Check for "a=x-qt-text-misc" line
-  char *buffer = strDupSize(sdpLine);
   Boolean parseSuccess = False;
+  char *buffer = strDupSize(sdpLine); // ensures we have enough space
 
   if (sscanf(sdpLine, "a=x-qt-text-misc:%[^\r\n]", buffer) == 1)
   {

@@ -11,13 +11,14 @@ DFSINK = ../liveMedia/DenseFileSink
 DMSESSION = ../liveMedia/DenseMediaSession
 DMSUBSESSION = ../liveMedia/DenseMediaSubsession
 DMFRSOURCE = ../liveMedia/DenseMultiFramedRTPSource
+DPRINTS = ../liveMedia/DensePrints
 DRTPSCLIENT = ../liveMedia/DenseRTSPClient
 DSRTPSOURCE = ../liveMedia/DenseSimpleRTPSource
 DSCSTATE = ../liveMedia/DenseStreamClientState
 
 client:
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(CLIENT).cpp
-	c++ -g -o $(CLIENT) -L. $(CLIENT).o $(DFSINK).o $(DMSESSION).o $(DMSUBSESSION).o $(DMFRSOURCE).o $(DRTPSCLIENT).o $(DSRTPSOURCE).o $(DSCSTATE).o $(LIBS)
+	c++ -g -o $(CLIENT) -L. $(CLIENT).o $(DFSINK).o $(DMSESSION).o $(DMSUBSESSION).o $(DMFRSOURCE).o $(DPRINTS).o $(DRTPSCLIENT).o $(DSRTPSOURCE).o $(DSCSTATE).o $(LIBS)
 
 .PHONY: clean all
 all: client

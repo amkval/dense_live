@@ -24,6 +24,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 // Implementation
 
 #include "include/DenseMultiFramedRTPSource.hh"
+#include "include/DenseMediaSession.hh"
+#include "include/DenseMediaSubsession.hh"
 
 ////////// DenseReorderingPacketBuffer definition //////////
 
@@ -158,6 +160,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame()
 // This function has been heavily modified.
 void DenseMultiFramedRTPSource::doGetNextFrame1()
 {
+  UsageEnvironment &env = envir();
   while (fNeedDelivery)
   {
     // If we already have packet data available, then deliver it now.
@@ -226,9 +229,9 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     if (use == 0)
     { // The packet is usable. Deliver all or part of it to our caller:
 
-      Groupsock *ourSocket = RTPgs();
+      // Groupsock *ourSocket = RTPgs();
       fMediaSession->fPacketChunk = nextPacket->chunk();
-      // fprintf(stderr, "\n\nUse == 0\nName: %s\nchunk: %d\n", mediaSession->mainSessionName, mediaSession->packetChunk);
+      //env << "Use == 0\nName: " << fMediaSession->mainSessionName << "\nchunk: " << fMediaSession->fPacketChunk << "\n";
 
       nextPacket->use(fTo, fMaxSize, frameSize, fNumTruncatedBytes,
                       fCurPacketRTPSeqNum, fCurPacketRTPTimestamp,
@@ -247,7 +250,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     { // This packet needs another round in the chain
 
       Groupsock *ourSocket = RTPgs();
-      fprintf(stderr, "\n(RTPSource)\ngo to the lookaside packet! bad packet!\nid: %u\nseq: %u\n\n", htons(ourSocket->port().num()), fCurPacketRTPSeqNum);
+      env << "(RTPSource)\ngo to the lookaside packet! bad packet!\nid: " << htons(ourSocket->port().num()) << "\nseq: " << fCurPacketRTPSeqNum << "\n";
       // FramedSource::setLookAside();
       if (fMediaSession->fPutInLookAsideBuffer == False)
       {
@@ -255,7 +258,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       }
       else
       {
-        fprintf(stderr, "\nSomething is wrong in outside of manageQualityLevels() \n\n");
+        env << "Something is wrong in outside of manageQualityLevels()\n";
         exit(0);
       }
       fMediaSession->fPacketChunk = nextPacket->chunk();
@@ -279,7 +282,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     }
     else
     {
-      fprintf(stderr, "\nSomething is wrong in outside of manageQualityLevels() 78\n");
+      env << "Something is wrong in outside of manageQualityLevels() 78\n";
       exit(0);
     }
 
@@ -288,9 +291,9 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       // We have all the data that the client wants.
       if (fNumTruncatedBytes > 0)
       {
-        envir() << "MultiFramedRTPSource::doGetNextFrame1(): The total received frame size exceeds the client's buffer size ("
-                << fSavedMaxSize << ").  "
-                << fNumTruncatedBytes << " bytes of trailing data will be dropped!\n";
+        env << "MultiFramedRTPSource::doGetNextFrame1(): The total received frame size exceeds the client's buffer size ("
+            << fSavedMaxSize << ").  "
+            << fNumTruncatedBytes << " bytes of trailing data will be dropped!\n";
       }
       // Call our own 'after getting' function, so that the downstream object can consume the data:
       if (fReorderingBuffer->isEmpty())
@@ -325,102 +328,73 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
 // TODO: Is this the same as the next?
 void DenseMultiFramedRTPSource::printQLF(DenseBufferedPacket *packet)
 {
-  DenseMediaSubsession *ourSubSession = getSession();
-  DenseMediaSession &parent = dynamic_cast<DenseMediaSession &>(ourSubSession->parentSession());
-  if (!&parent)
-  {
-    fprintf(stderr, "dynamic_cast failed in DenseMultiFramedRTPSource.");
-  }
+  DenseMediaSubsession *ourSubSession = mediaSubsession();
+  DenseMediaSession *parent = fMediaSession;
   Groupsock *ourSocket = RTPgs();
 
   Boolean inCntrl = False;
   Boolean nextInCntrl = False;
-  if (parent.fInControl == ourSubSession)
+  if (parent->fInControl == ourSubSession)
   {
     inCntrl = True;
   }
-  if (parent.fDenseNext == ourSubSession)
+  if (parent->fDenseNext == ourSubSession)
   {
     nextInCntrl = True;
   }
 
-  fprintf(stderr,
-          "\n          ManageQualityLevels:"
-          "\n          In PACKET:"
-          "\n          id: %u"
-          "\n          Level: %d"
-          "\n          seqNo: %u"
-          "\n          packetChunk: %u"
-          "\n          In SESSION:"
-          "\n          SourcenowChunk %u"
-          "\n          Main level %d"
-          "\n          InControl: %s"
-          "\n          NextInControl: %s"
-          "\n          LEVEL LOSS: %d"
-          "\n          TOTAL LOSS: %d\n\n",
-          htons(ourSocket->port().num()),
-          ourSubSession->fLevel,
-          packet->rtpSeqNo(),
-          packet->chunk(),
-          parent.fRTPChunk,
-          parent.fCurrentLevel,
-          inCntrl ? "True" : "False",
-          nextInCntrl ? "True" : "False",
-          parent.fLevelDrops,
-          parent.fTotalDrops);
+  envir() << "\tManageQualityLevels:\n"
+          << "\tIn PACKET:\n"
+          << "\tid: %u" << htons(ourSocket->port().num()) << "\n"
+          << "\tLevel: %d" << ourSubSession->fLevel << "\n"
+          << "\tseqNo: %u" << packet->rtpSeqNo() << "\n"
+          << "\tpacketChunk: %u" << packet->chunk() << "\n"
+          << "\tIn SESSION:\n"
+          << "\tSourcenowChunk %u" << parent->fRTPChunk << "\n"
+          << "\tMain level %d" << parent->fCurrentLevel << "\n"
+          << "\tInControl: %s" << (inCntrl ? "True" : "False") << "\n"
+          << "\tNextInControl: %s" << (nextInCntrl ? "True" : "False") << "\n"
+          << "\tLEVEL LOSS: %d" << parent->fLevelDrops << "\n"
+          << "\tTOTAL LOSS: %d" << parent->fTotalDrops << "\n";
 }
 
 void DenseMultiFramedRTPSource::printQLT(DenseBufferedPacket *packet)
 {
-  DenseMediaSubsession *ourSubSession = getSession();
-  DenseMediaSession &parent = static_cast<DenseMediaSession &>(ourSubSession->parentSession());
-  if (&parent == NULL)
-  {
-    fprintf(stderr, "Failed miserably. :(");
-  }
+  DenseMediaSubsession *ourSubSession = mediaSubsession();
+  DenseMediaSession *parent = fMediaSession;
   Groupsock *ourSocket = RTPgs();
 
   Boolean inCntrl = False;
   Boolean nextInCntrl = False;
-  if (parent.fInControl == ourSubSession)
+  if (parent->fInControl == ourSubSession)
   {
     inCntrl = True;
   }
-  if (parent.fDenseNext == ourSubSession)
+  if (parent->fDenseNext == ourSubSession)
   {
     nextInCntrl = True;
   }
 
-  fprintf(stderr,
-          "\n          ManageQualityLevels:"
-          "\n          In PACKET:"
-          "\n          id: %u"
-          "\n          Level: %d"
-          "\n          seqNo: %u"
-          "\n          packetChunk: %u"
-          "\n          In SESSION:"
-          "\n          SourcenowChunk %u"
-          "\n          Main level %d"
-          "\n          InControl: %s"
-          "\n          NextInControl: %s"
-          "\n          LEVEL LOSS: %d"
-          "\n          TOTAL LOSS: %d\n\n",
-          htons(ourSocket->port().num()),
-          ourSubSession->fLevel,
-          packet->rtpSeqNo(),
-          packet->chunk(),
-          parent.fRTPChunk,
-          parent.fCurrentLevel,
-          inCntrl ? "True" : "False",
-          nextInCntrl ? "True" : "False",
-          parent.fLevelDrops,
-          parent.fTotalDrops);
+  envir() << "\tManageQualityLevels:\n"
+          << "\tIn PACKET:\n"
+          << "\tid: %u" << htons(ourSocket->port().num()) << "\n"
+          << "\tLevel: %d" << ourSubSession->fLevel << "\n"
+          << "\tseqNo: %u" << packet->rtpSeqNo() << "\n"
+          << "\tpacketChunk: %u" << packet->chunk() << "\n"
+          << "\tIn SESSION:\n"
+          << "\tSourcenowChunk %u" << parent->fRTPChunk << "\n"
+          << "\tMain level %d" << parent->fCurrentLevel << "\n"
+          << "\tInControl: %s" << (inCntrl ? "True" : "False") << "\n"
+          << "\tNextInControl: %s" << (nextInCntrl ? "True" : "False") << "\n"
+          << "\tLEVEL LOSS: %d" << parent->fLevelDrops << "\n"
+          << "\tTOTAL LOSS: %d" << parent->fTotalDrops << "\n";
 }
 
 int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
 {
-  DenseMediaSubsession *ourSubSession = getSession();
-  Groupsock *ourSocket = RTPgs();
+  UsageEnvironment &env = envir();
+  DenseMediaSubsession *ourSubSession = mediaSubsession();
+  // Groupsock *ourSocket = RTPgs();
   if (packet->rtpSeqNo() % 50 == 0)
   {
     // printQLT(packet);
@@ -430,7 +404,7 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
   if (fMediaSession->fRTPChunk == 65535)
   {
     fMediaSession->fRTPChunk = packet->chunk();
-    fprintf(stderr, "\nThis is the first packet, and we are changing the fOurSession->RTPChunk to %d\n", fMediaSession->fRTPChunk);
+    env << "This is the first packet, and we are changing the fOurSession->RTPChunk to " << fMediaSession->fRTPChunk << "\n";
   }
 
   /*
@@ -451,7 +425,7 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
       if (fJustMoved)
       {
         fJustMoved = False;
-        fprintf(stderr, "\nThis one JUST MOVED, give it a minute!\n");
+        env << "This one JUST MOVED, give it a minute!\n";
         printQLF(packet);
         fMediaSession->fRTPChunk = packet->chunk();
         return 0;
@@ -463,7 +437,7 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
         { // Start down, there are too many drops
           if (!startDown())
           {
-            fprintf(stderr, "\nQuitting after starDown\n");
+            env << "Quitting after starDown\n";
             exit(0);
           }
         }
@@ -471,7 +445,7 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
         {
           if (!startUp())
           { // Start up, there is not many drops
-            fprintf(stderr, "\nQuitting avfter startUp()\n");
+            env << "Quitting after startUp()\n";
             exit(0);
           }
         }
@@ -483,14 +457,14 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
       else
       { // Finish moving
         finish();
-        fprintf(stderr, "\nHave finished (packet follows)\n");
+        env << "Have finished (packet follows)\n";
         printQLF(packet);
         // printQLT(packet);
       }
     }
     else
     { // This is wrong
-      fprintf(stderr, "\nSomething is wrong in manageQualityLevels() the packet chunk is behind the parent.streamChunk\n");
+      env << "Something is wrong in manageQualityLevels() the packet chunk is behind the parent.streamChunk\n";
       exit(0);
     }
   }
@@ -509,8 +483,8 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
 
 void DenseMultiFramedRTPSource::finish()
 {
-
-  DenseMediaSubsession *ourSubSession = getSession();
+  UsageEnvironment &env = envir();
+  DenseMediaSubsession *ourSubSession = mediaSubsession();
   Groupsock *ourGS = RTPgs();
 
   fThisIsMoving = False;
@@ -523,7 +497,7 @@ void DenseMultiFramedRTPSource::finish()
 
   DenseMultiFramedRTPSource *child = dynamic_cast<DenseMultiFramedRTPSource *>(change->rtpSource());
   if (!child)
-    fprintf(stderr, "RTPSource is not a DenseMultiFramedRTPSource");
+    env << "RTPSource is not a DenseMultiFramedRTPSource";
 
   child->fJustMoved = True;
   fMediaSession->fFinishLookAside = True;
@@ -533,20 +507,21 @@ void DenseMultiFramedRTPSource::finish()
     socketLeaveGroup(envir(), ourGS->socketNum(), ourSubSession->connectionEndpointAddress());
   }
 
-  fprintf(stderr, "\n\nFinish from %d\nThe level after finish: %d\n\n", htons(ourGS->port().num()), fMediaSession->fCurrentLevel);
+  env << "Finish from " << htons(ourGS->port().num()) << "\nThe level after finish: " << fMediaSession->fCurrentLevel << "\n";
 }
 
 Boolean DenseMultiFramedRTPSource::startDown()
 {
-  fprintf(stderr, "startdown leveldrops: %d\n", fMediaSession->fLevelDrops);
-  MediaSubsession *ourSubSession = getSession();
+  UsageEnvironment &env = envir();
+  env << "startdown leveldrops: " << fMediaSession->fLevelDrops << "\n";
+  // MediaSubsession *ourSubSession = mediaSubsession();
   if (fMediaSession->fCurrentLevel == 1)
   {
     if (joinZero())
     {
       // Update variables
       fThisIsMoving = True;
-      fprintf(stderr, "\nHave joined ZERO\n");
+      env << "Have joined ZERO\n";
       return True;
     }
   }
@@ -556,13 +531,13 @@ Boolean DenseMultiFramedRTPSource::startDown()
     {
       // Update variables
       fThisIsMoving = True;
-      fprintf(stderr, "\nHave joined ONE\n");
+      env << "Have joined ONE\n";
       return True;
     }
   }
   else
   {
-    fprintf(stderr, "\nWe are already at zero and is not moving anywhere\n");
+    env << "We are already at zero and is not moving anywhere\n";
     fMediaSession->fLevelDrops = 0;
 
     return True;
@@ -573,16 +548,17 @@ Boolean DenseMultiFramedRTPSource::startDown()
 
 Boolean DenseMultiFramedRTPSource::startUp()
 {
-  fprintf(stderr, "startUp -> current leven: %d\n", fMediaSession->fCurrentLevel);
-  MediaSubsession *ourSubSession = getSession();
-  MediaSession &parent = ourSubSession->parentSession();
+  UsageEnvironment &env = envir();
+  env << "startUp -> current leven: " << fMediaSession->fCurrentLevel << "\n";
+  // MediaSubsession *ourSubSession = mediaSubsession();
+  // DenseMediaSession *parent = fMediaSession;
   if (fMediaSession->fCurrentLevel == 0)
   {
     if (joinOne())
     {
       // Update variables
       fThisIsMoving = True;
-      fprintf(stderr, "\nHave joined ONE\n");
+      env << "Have joined ONE\n";
       return True;
     }
   }
@@ -592,13 +568,13 @@ Boolean DenseMultiFramedRTPSource::startUp()
     {
       // Update variables
       fThisIsMoving = True;
-      fprintf(stderr, "\nHave joined TWO\n");
+      env << "Have joined TWO\n";
       return True;
     }
   }
   else
   {
-    fprintf(stderr, "\nWe are already at two and is not moving anywhere\n");
+    env << "We are already at two and is not moving anywhere\n";
     fMediaSession->fLevelDrops = 0;
     return True;
   }
@@ -608,9 +584,10 @@ Boolean DenseMultiFramedRTPSource::startUp()
 
 Boolean DenseMultiFramedRTPSource::joinZero()
 {
-  fprintf(stderr, "joinzero\n");
+  UsageEnvironment &env = envir();
+  env << "joinzero\n";
   Groupsock *ourGS = RTPgs();
-  MediaSubsession *ourSubsession = getSession();
+  // MediaSubsession *ourSubsession = mediaSubsession();
   DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubhead(); // TODO: Does this work?
   fMediaSession->fDenseNext = next;
   if (next != NULL)
@@ -620,7 +597,7 @@ Boolean DenseMultiFramedRTPSource::joinZero()
     RTPSource *nextSource = next->rtpSource();
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    fprintf(stderr, "joinZero() from %u to %u\n", htons(ourGS->port().num()), htons(nextGs->port().num()));
+    env << "joinZero() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
     return True;
   }
   return False;
@@ -628,9 +605,10 @@ Boolean DenseMultiFramedRTPSource::joinZero()
 
 Boolean DenseMultiFramedRTPSource::joinOne()
 {
-  fprintf(stderr, "\njoinone\n");
+  UsageEnvironment &env = envir();
+  env << "joinone\n";
   Groupsock *ourGS = RTPgs();
-  MediaSubsession *ourSubsession = getSession();
+  // MediaSubsession *ourSubsession = mediaSubsession();
   DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubhead(); // fMediaSession->fDenseHead;
   next = next->getNext();
   fMediaSession->fDenseNext = next;
@@ -641,21 +619,22 @@ Boolean DenseMultiFramedRTPSource::joinOne()
     RTPSource *nextSource = next->rtpSource();
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    fprintf(stderr, "joinOne() from %u to %u\nThe level of the next: %d", htons(ourGS->port().num()), htons(nextGs->port().num()), fMediaSession->fDenseNext->fLevel);
+    env << "joinOne() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\nThe level of the next: " << fMediaSession->fDenseNext->fLevel << "\n";
     return True;
   }
   else
   {
-    fprintf(stderr, "joinone have problems next == NULL\n");
+    env << "joinone have problems next == NULL\n";
   }
   return False;
 }
 
 Boolean DenseMultiFramedRTPSource::joinTwo()
 {
-  fprintf(stderr, "jointwo\n");
+  UsageEnvironment &env = envir();
+  env << "jointwo\n";
   Groupsock *ourGS = RTPgs();
-  DenseMediaSubsession *ourSubsession = getSession();
+  // DenseMediaSubsession *ourSubsession = mediaSubsession();
   DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubTail(); //->fSubsessionsTail; // fDenseTail; // TODO: convert to fancy cast?
   fMediaSession->fDenseNext = next;
   if (next != NULL)
@@ -665,7 +644,7 @@ Boolean DenseMultiFramedRTPSource::joinTwo()
     RTPSource *nextSource = next->rtpSource();
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    fprintf(stderr, "joinTwo() from %u to %u\n", htons(ourGS->port().num()), htons(nextGs->port().num()));
+    env << "joinTwo() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
     return True;
   }
   return False;

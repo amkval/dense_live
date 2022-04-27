@@ -18,23 +18,27 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #ifndef _DENSE_FILE_SINK_HH
 #define _DENSE_FILE_SINK_HH
 
-#ifndef _MULTI_FRAMED_RTP_SOURCE_HH
-#include "MultiFramedRTPSource.hh"
-#endif
-
-#include <cmath>
-#include <string>
-#include <assert.h> // TODO: use cassert instead?
-
 class DenseMediaSession; // Forward
+
+// Live Imports
 
 #ifndef _FILE_SINK_HH
 #include "FileSink.hh"
 #endif
 
+// Dense Imports
+
 #ifndef _DENSE_MEDIA_SESSION_HH
 #include "DenseMediaSession.hh"
 #endif
+
+#ifndef _MULTI_FRAMED_RTP_SOURCE_HH
+#include "MultiFramedRTPSource.hh"
+#endif
+
+//#include <cmath>
+//#include <string>
+//#include <cassert>
 
 class DenseFileSink : public FileSink
 {
@@ -42,16 +46,15 @@ public:
   static DenseFileSink *createNew(
       UsageEnvironment &env,
       char const *fileName,
-      unsigned bufferSize = 20000,
-      Boolean oneFilePerFrame = False);
+      DenseMediaSession *mediaSession,
+      unsigned bufferSize = 20000);
 
 protected:
   DenseFileSink(
       UsageEnvironment &env,
       FILE *fid,
-      unsigned bufferSize,
-      char const *perFrameFileNamePrefix,
-      DenseMediaSession *mediaSession);
+      DenseMediaSession *mediaSession,
+      unsigned bufferSize);
   virtual ~DenseFileSink();
 
 protected:
@@ -60,10 +63,9 @@ protected:
       unsigned dataSize,
       struct timeval presentationTime);
 
-  // TODO: are these used properly?
-  long pullChunk(unsigned short numb);
+  long pullChunk(unsigned short chunkId);
   void pullPatch();
-  void pullBeginning(int ant);
+  void pullBeginning(int chunkCount);
   void pullAll();
 
   void finishFromLookAside();

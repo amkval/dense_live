@@ -19,13 +19,15 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #define _DENSE_MEDIA_SUBSESSION_HH
 
 // Live Imports
-
 #ifndef _MEDIA_SESSION_HH
 #include "MediaSession.hh"
 #endif
 
+#ifndef _GROUPSOCK_HELPER_HH
 #include "GroupsockHelper.hh"
+#endif
 
+// Other Imports
 #include <string>
 
 // Forward class declaration
@@ -35,16 +37,17 @@ class DenseMediaSession;
 class DenseMediaSubsession : public MediaSubsession
 {
 public:
-  friend class DenseMediaSession;
   static DenseMediaSubsession *createNew(UsageEnvironment &env, DenseMediaSession &parent);
+  friend class DenseMediaSession;
 
 protected:
-  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent); // TODO: is the passing of parent right?
+  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent); // TODO: verify passing of parent
   virtual ~DenseMediaSubsession();
 
 public:
   // Function overriden to spoof fControlPath for RTSPClient
   // This is done to avoid having to edit / copy the whole file.
+  // This may break another call... verify TODO:
   char const *controlPath() const {
     std::string denseControlPath = fControlPath;
     int len = denseControlPath.size();
@@ -54,6 +57,7 @@ public:
     return denseControlPath.c_str();
   }
 
+  // TODO: should this be used?
   DenseMediaSubsession *getNext() { return (DenseMediaSubsession *)fNext; }
 
 protected:

@@ -63,6 +63,12 @@ protected:
                                                     unsigned packetSize);
   // The default implementation returns True, but this can be redefined
 
+public:
+  // Moved from RTPSource
+  DenseMediaSubsession *mediaSubsession() { return fMediaSubsession; };
+  void setMediaSubsession(DenseMediaSubsession *mediaSubsession) { fMediaSubsession = mediaSubsession; };
+  // </Dense Section>
+
 protected:
   Boolean fCurrentPacketBeginsFrame;
   Boolean fCurrentPacketCompletesFrame;
@@ -84,11 +90,6 @@ protected:
   Boolean joinTwo();
   void printQLF(DenseBufferedPacket *packet);
   void printQLT(DenseBufferedPacket *packet);
-
-  // Moved from RTPSource
-  DenseMediaSubsession *getSession() { return fSession; };
-  void setSession(DenseMediaSubsession *input) { fSession = input; };
-  // </Dense Section>
 
 private:
   // redefined virtual functions:
@@ -122,7 +123,7 @@ public:
   DenseMediaSession *fMediaSession;
 
 protected:
-  DenseMediaSubsession *fSession;
+  DenseMediaSubsession *fMediaSubsession;
   // </Dense Section>
 };
 

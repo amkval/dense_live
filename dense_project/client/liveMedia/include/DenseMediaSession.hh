@@ -19,7 +19,6 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #define _DENSE_MEDIA_SESSION_HH
 
 // Live Imports
-
 #ifndef _MEDIA_SESSION_HH
 #include "MediaSession.hh"
 #endif
@@ -29,13 +28,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include "DenseMediaSubsession.hh"
 #endif
 
-// TODO: Can should these be here?
-
 #include <string>
 #include <vector>
-
-// Forward class definitions
-//class DenseMediaSubsession;
 
 ////// DenseMediaSession implementation /////
 class DenseMediaSession : public MediaSession
@@ -47,8 +41,8 @@ protected:
   DenseMediaSession(UsageEnvironment &env);
   virtual ~DenseMediaSession();
 
-// TODO: Is this right?
 public:
+  // TODO: Do we need these?
   MediaSubsession *getSubhead() { return fSubsessionsHead; }
   MediaSubsession *getSubTail() { return fSubsessionsTail; }
 
@@ -59,29 +53,28 @@ protected:
 
 public:
   char *fxmisc;
-  // TODO: do we need the level addresses?
 
   // Subsession variables:
   std::vector<DenseMediaSubsession *> fDenseMediaSubsessions;
   DenseMediaSubsession *fInControl;
   DenseMediaSubsession *fDenseNext;
 
-  Boolean fPutInLookAsideBuffer;
+  // Session variables
+  // TODO: comment the use of each variable!
   Boolean fFinishLookAside;
+  Boolean fPacketLoss;
+  Boolean fPutInLookAsideBuffer;
+  FILE *fOut;
+  int fCurrentLevel;
+  int fLastOffset;
+  int fLevelDrops;
+  int fLookAsideSize;
+  int fTotalDrops;
+  int fWritten;
+  unsigned char *fLookAside;
+  unsigned short fChunk;
   unsigned short fPacketChunk;
   unsigned short fRTPChunk;
-  unsigned char *fLookAside;
-  int fLookAsideSize;
-  int fCurrentLevel;
-  // Pull patching variables:
-  int fLevelDrops;
-  int fTotalDrops;
-  int fLastOffset;
-  int fWritten;
-  unsigned short fChunk;
-  FILE *fOut;
-  Boolean fPacketLoss;
-
 };
 
 #endif // _DENSE_MEDIA_SESSION_HH

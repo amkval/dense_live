@@ -15,14 +15,23 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 **********/
 // TODO: additional information
 
+#include "OutputFile.hh"
+
 #include "include/DenseFileSink.hh"
+
+#ifndef _DENSE_PRINTS_HH
+#include "include/DensePrints.hh"
+#endif
+
+#include <string>
+#include <iostream>
 
 DenseFileSink::DenseFileSink(
     UsageEnvironment &env,
-    FILE *fid,
-    unsigned bufferSize,
-    char const *perFrameFileNamePrefix,
-    DenseMediaSession *mediaSession) : FileSink(env, fid, bufferSize, perFrameFileNamePrefix), fMediaSession(mediaSession)
+    FILE *fileName,
+    DenseMediaSession *mediaSession,
+    unsigned bufferSize) : FileSink(env, fileName, bufferSize, NULL),
+                           fMediaSession(mediaSession), fWriteFromPacket(True)
 {
 }
 
@@ -33,14 +42,20 @@ DenseFileSink::~DenseFileSink()
 DenseFileSink *DenseFileSink::createNew(
     UsageEnvironment &env,
     char const *fileName,
-    unsigned bufferSize,
-    Boolean oneFilePerFrame)
+    DenseMediaSession *mediaSession,
+    unsigned bufferSize)
 {
-  DenseFileSink *ret = (DenseFileSink *)FileSink::createNew(env, fileName, bufferSize, oneFilePerFrame);
-  ret->fWriteFromPacket = True;
-  return ret;
+  FILE *fid = OpenOutputFile(env, fileName);
+  return new DenseFileSink(env, fid, mediaSession, bufferSize);
 }
 
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @param dataSize 
+ * @param presentationTime 
+ */
 void DenseFileSink::addData(
     unsigned char const *data,
     unsigned dataSize,
@@ -48,10 +63,17 @@ void DenseFileSink::addData(
 {
   FileSink::addData(data, dataSize, presentationTime);
 
+  UsageEnvironment &env = envir();
+
   if (fMediaSession->fPutInLookAsideBuffer)
   {
-    // FramedSource *chunkSet = source();
-    // move the bytes to the lookaside
+    // Move the bytes to Lookaside Buffer
+    env << "DenseFileSink::addData():\n"
+        //<< "\tfMediaSession->fPacketSource: " << fMediaSession->fPacketSource << "\n"
+        //<< "\tfMediaSession->fPacketSeq" << fMediaSession->fPacketSeq << "\n"
+        << "\tfMediaSession->fPacketChunk" << fMediaSession->fPacketChunk << "\n"
+        << "\tfMediaSession->fLookAsideSize" << fMediaSession->fLookAsideSize << "\n";
+
     memmove(fMediaSession->fLookAside + fMediaSession->fLookAsideSize, data, dataSize);
     fMediaSession->fLookAsideSize += dataSize;
 
@@ -63,64 +85,102 @@ void DenseFileSink::addData(
     }
 
     fMediaSession->fPutInLookAsideBuffer = False;
-    return; // Does not continue
   }
-
-  if (fMediaSession->fPacketChunk > fMediaSession->fChunk)
-  { // New chunk arrived at the FileSink and its not to be put in lookaside
-    fWriteFromPacket = True;
-    fMediaSession->fChunk = fMediaSession->fPacketChunk;
-    fMediaSession->fLastOffset = fMediaSession->fWritten;
-    /* fprintf(mediaSession->debugFile, "\nSetting new fChunk in FileSink\npacketchunk: %d\nfChunk now: %d\n", mediaSession->packetChunk, mediaSession->fChunk);
-    fprintf(mediaSession->debugFile, "\nAlso setting new lastOffset %d\n\n", mediaSession->lastOffset); */
-    fprintf(stderr, "\nthe fWritten is: %u\n\nlast offset: %u\n\n\n", fMediaSession->fWritten, fMediaSession->fLastOffset);
-    /* fprintf(mediaSession->debugFile, "\nthe fWritten is: %u\n\n", mediaSession->fWritten); */
-  }
-
-  if (fMediaSession->fFinishLookAside)
-  { // We need to transfer from lookaside to file first
-    finishFromLookAside();
-    fMediaSession->fFinishLookAside = False;
-  }
-
-  if (fOutFid != NULL && data != NULL && fWriteFromPacket)
+  else
   {
-    fMediaSession->fWritten += fwrite(data, 1, dataSize, fMediaSession->fOut);
+    // New chunk arrived at the FileSink and its not to be put in lookaside
+    if (fMediaSession->fPacketChunk > fMediaSession->fChunk)
+    {
+      fWriteFromPacket = True;
+      fMediaSession->fChunk = fMediaSession->fPacketChunk;
+      fMediaSession->fLastOffset = fMediaSession->fWritten;
+      env << "Setting new fChunk in FileSink\npacketchunk: "
+          << fMediaSession->fPacketChunk
+          << "\nfChunk now: "
+          << fMediaSession->fChunk << "\n";
+      env << "the fWritten is: "
+          << fMediaSession->fWritten
+          << "\n\nlast offset: "
+          << fMediaSession->fLastOffset << "\n";
+    }
+
+    // We need to transfer from lookaside to file first
+    if (fMediaSession->fFinishLookAside)
+    {
+      finishFromLookAside();
+      fMediaSession->fFinishLookAside = False;
+    }
+
+    // Write from 'data' to 'fOut'
+    if (fOutFid != NULL && data != NULL && fWriteFromPacket)
+    {
+      fMediaSession->fWritten += fwrite(data, 1, dataSize, fMediaSession->fOut);
+    }
   }
 }
 
+/**
+ * @brief TODO:
+ *
+ */
 void DenseFileSink::finishFromLookAside()
 {
-  Boolean quit = False;
+  UsageEnvironment &env = envir();
+  env << "\nFileSink::finishFromLookAside()\nThere is "
+      << fMediaSession->fLookAsideSize
+      << " bytes in the lookAsidebuffer\nThere is "
+      << fMediaSession->fWritten
+      << " bytes in the outFile\n";
 
+  // TODO: what does this do?
+  Boolean quit = False;
   if (fMediaSession->fLookAsideSize > 0)
   {
     quit = True;
   }
 
   fMediaSession->fWritten += fwrite(fMediaSession->fLookAside, 1, fMediaSession->fLookAsideSize, fMediaSession->fOut);
-  memset(fMediaSession->fLookAside, 0, 2000000); // Zero out the buffer
+  memset(fMediaSession->fLookAside, 0, 2000000); // Zero out the buffer TODO: centralize buffer size!
   fMediaSession->fLookAsideSize = 0;
 
+  env << "\nFileSink::finishFromLookAside()\nThere is "
+      << fMediaSession->fLookAsideSize
+      << " bytes in the lookAsidebuffer\nThere is "
+      << fMediaSession->fWritten
+      << " bytes in the outFile\n";
+
+  // TODO: what is this for?
   if (quit)
   {
-    // exit(0);
+    // exit(0); //TODO: Reinstate?
   }
 }
 
+/**
+ * @brief
+ *
+ */
 void DenseFileSink::pullPatch()
 {
+  UsageEnvironment &env = envir();
+  env << "addData PACKET LOSS PRECEEDED THIS fWritten: " << fMediaSession->fWritten << "\n";
+
   long fileSize;
   fileSize = pullChunk(fMediaSession->fChunk);
   fWriteFromPacket = False;
   fMediaSession->fWritten = fMediaSession->fLastOffset + fileSize;
 }
 
-void DenseFileSink::pullBeginning(int ant)
+/**
+ * @brief Pull all chunks from the start up until and including 'chunkCount'
+ *
+ * @param chunkCount number of chunks to be pulled
+ */
+void DenseFileSink::pullBeginning(int chunkCount)
 {
   long fileSize;
 
-  for (int i = 0; i <= ant; i++)
+  for (int i = 0; i <= chunkCount; i++)
   {
     fileSize = pullChunk(i);
     fWriteFromPacket = False;
@@ -130,47 +190,55 @@ void DenseFileSink::pullBeginning(int ant)
   }
 }
 
+/**
+ * @brief Pull 'all' chunks from the server
+ *
+ * Used while testing
+ * Uses hard coded values, which is not optimal
+ */
 void DenseFileSink::pullAll()
 {
-  for (int i = 7; i < 14; i++)
+  for (int i = 0; i <= 60; i++)
   {
     pullChunk(i);
   }
 
   fclose(fOutFid);
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
-long DenseFileSink::pullChunk(unsigned short numb)
+/**
+ * @brief Pull a specific chunk from the server and write to file.
+ *
+ * @param chunkId ID of the chunk to be pulled.
+ * @return long size of wrtite to file.
+ */
+long DenseFileSink::pullChunk(unsigned short chunkId)
 {
-  std::string newpath;
+  UsageEnvironment &env = envir();
 
-  std::string start = "wget ";
-  newpath.append(start);
+  // Compile pull command
+  std::string start = "wget ";                 // Command start
+  std::string serverAddress = "10.20.0.16";    // Server IP
+  std::string manStart = "/first";             // Quality Level?
+  std::string chunk = std::to_string(chunkId); // Chunk ID
+  std::string manEnd = ".ts";                  // File extension
+  std::string reqEnd = " --header \"Host: denseserver.com\"";
+  std::string path = start + serverAddress + manStart + chunk + manEnd + reqEnd;
 
-  newpath.append("10.20.0.16"); // TODO: Do something about this?
+  std::string fileName = "first";
+  fileName.append(chunk);
+  fileName.append(manEnd);
 
-  std::string manstart = "/first";
-  newpath.append(manstart);
+  env << "DenseFileSink::pullChunk(): path: " << path.c_str() << " og filename: " << fileName.c_str() << "\n";
 
-  std::string thechunk = std::to_string(numb);
-  newpath.append(thechunk);
+  // Execute Pull command
+  system(path.c_str());
 
-  std::string manend = ".ts";
-  newpath.append(manend);
-
-  std::string reqend = " --header \"Host: denseserver.com\"";
-  newpath.append(reqend);
-
-  std::string namestart = "first";
-  namestart.append(thechunk);
-  namestart.append(manend);
-
-  system(newpath.c_str());
-
-  FILE *file = fopen(namestart.c_str(), "rb");
+  FILE *file = fopen(fileName.c_str(), "rb");
   fseek(file, 0, SEEK_END);
   long fileSize = ftell(file);
+  env << "fileSize: " << fileSize << " fOutfid: " << ftell(fMediaSession->fOut) << "\n";
   fseek(file, 0, SEEK_SET);
 
   char *buffer = new char[fileSize];
@@ -178,7 +246,7 @@ long DenseFileSink::pullChunk(unsigned short numb)
   fread(buffer, 1, fileSize, file);
   fseek(fMediaSession->fOut, 0, fMediaSession->fWritten);
   long written = fwrite(buffer, 1, fileSize, fMediaSession->fOut);
-
+  env << "written: " << written << " fOutfid: " << ftell(fMediaSession->fOut) << "\n";
   fclose(file);
 
   delete[] buffer;

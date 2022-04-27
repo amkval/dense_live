@@ -32,11 +32,11 @@ public:
 public:
   MediaSubsessionIterator *fIter; // TODO: is this replaceable with vector?
   DenseMediaSession *fDenseMediaSession;
-  DenseMediaSubsession *fDenseMediaSubsession;
+  DenseMediaSubsession *fDenseMediaSubsession; // TODO: and this?
   TaskToken fStreamTimerTask;
   double fDuration;
   int fSubsessionCount;
-  DenseMediaSubsession *fLinkSubSession;
+  DenseMediaSubsession *fLinkSubSession; // TODO: what is this?
 };
 
 #endif // _DENSE_STREAM_CLIENT_STATE_HH

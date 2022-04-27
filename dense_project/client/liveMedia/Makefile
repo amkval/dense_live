@@ -13,6 +13,8 @@ all:
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseMultiFramedRTPSource.cpp
 
+	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DensePrints.cpp
+
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseRTSPClient.cpp
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseSimpleRTPSource.cpp
