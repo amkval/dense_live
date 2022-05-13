@@ -42,9 +42,9 @@ protected:
   virtual ~DenseMediaSession();
 
 public:
-  // TODO: Do we need these?
-  MediaSubsession *getSubhead() { return fSubsessionsHead; }
-  MediaSubsession *getSubTail() { return fSubsessionsTail; }
+  // Note: Not used anymore.
+  //MediaSubsession *getSubHead() { return fSubsessionsHead; }
+  //MediaSubsession *getSubTail() { return fSubsessionsTail; }
 
 protected:
   Boolean initializeWithSDP(char const *sdpDescription);
@@ -56,25 +56,24 @@ public:
 
   // Subsession variables:
   std::vector<DenseMediaSubsession *> fDenseMediaSubsessions;
-  DenseMediaSubsession *fInControl;
-  DenseMediaSubsession *fDenseNext;
+  DenseMediaSubsession *fInControl; // Current subsession in control of the stream.
+  DenseMediaSubsession *fDenseNext; // Targeted subsession after level move. TODO: Make sure that this works!
 
   // Session variables
-  // TODO: comment the use of each variable!
-  Boolean fFinishLookAside;
-  Boolean fPacketLoss;
-  Boolean fPutInLookAsideBuffer;
-  FILE *fOut;
-  int fCurrentLevel;
-  int fLastOffset;
-  int fLevelDrops;
-  int fLookAsideSize;
-  int fTotalDrops;
-  int fWritten;
-  unsigned char *fLookAside;
-  unsigned short fChunk;
-  unsigned short fPacketChunk;
-  unsigned short fRTPChunk;
+  Boolean fFinishLookAside;      // If we need to transfer from look aside to file before ...
+  Boolean fPacketLoss;           // Note: Not read, only written.
+  Boolean fPutInLookAsideBuffer; // If a chunk is to be put in the look aside buffer.
+  FILE *fOut;                    // The main output stream. better name?
+  int fCurrentLevel;             // The current quality level
+  int fLastOffset;               // Size of the last write to fOut?
+  int fLevelDrops;               // Times the quality level has dropped since last level change.
+  int fLookAsideSize;            // Bytes currently stored in the look aside buffer.
+  int fTotalDrops;               // Total packet drops.
+  int fWritten;                  // Bytes written to fOut.
+  unsigned char *fLookAside;     // The look aside buffer.
+  unsigned short fChunk;         // Current chunk number.
+  unsigned short fPacketChunk;   // Chunk number of the most resent chunk.
+  unsigned short fRTPChunk;      // TODO:?
 };
 
 #endif // _DENSE_MEDIA_SESSION_HH

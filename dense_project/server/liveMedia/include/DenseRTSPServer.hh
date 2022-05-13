@@ -225,6 +225,13 @@ protected:
   virtual DenseRTSPClientSession *createNewClientSession(u_int32_t sessionId);
 };
 
+typedef enum StreamingMode
+{
+  RTP_UDP,
+  RTP_TCP,
+  RAW_UDP
+} StreamingMode;
+
 // A special version of "parseTransportHeader()", used just for parsing the "Transport:" header
 // in an incoming "REGISTER" command:
 void parseTransportHeaderForREGISTER(
@@ -232,12 +239,5 @@ void parseTransportHeaderForREGISTER(
     Boolean &reuseConnection, // out
     Boolean &deliverViaTCP,   // out
     char *&proxyURLSuffix);   // out
-
-typedef enum StreamingMode
-{
-  RTP_UDP,
-  RTP_TCP,
-  RAW_UDP
-} StreamingMode;
 
 #endif

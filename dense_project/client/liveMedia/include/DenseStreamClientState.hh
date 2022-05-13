@@ -15,6 +15,9 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 **********/
 // TODO: additional information
 
+// Note: Do we need this class with only one variable?
+// Could we store other important variables here?
+
 #ifndef _DENSE_STREAM_CLIENT_STATE_HH
 #define _DENSE_STREAM_CLIENT_STATE_HH
 
@@ -30,13 +33,13 @@ public:
   virtual ~DenseStreamClientState();
 
 public:
-  MediaSubsessionIterator *fIter; // TODO: is this replaceable with vector?
+  //MediaSubsessionIterator *fIter; // Note: Replaced by vector.
   DenseMediaSession *fDenseMediaSession;
-  DenseMediaSubsession *fDenseMediaSubsession; // TODO: and this?
-  TaskToken fStreamTimerTask;
-  double fDuration;
-  int fSubsessionCount;
-  DenseMediaSubsession *fLinkSubSession; // TODO: what is this?
+  // DenseMediaSubsession *fDenseMediaSubsession; // Note: Replaced by vector.
+  // TaskToken fStreamTimerTask; // Note: Not used outside caPLAY, and caPLAY was not used.
+  // double fDuration; // Note: ^
+  // int fSubsessionCount; // Note: Not used.
+  // DenseMediaSubsession *fLinkSubSession; // Note: Not used.
 };
 
 #endif // _DENSE_STREAM_CLIENT_STATE_HH

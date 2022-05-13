@@ -57,13 +57,13 @@ public:
   void resetHaveSeenFirstPacket() { fHaveSeenFirstPacket = False; }
 
   /** <Dense content> **/
-  DenseBufferedPacket *getLastCompletedPacket();
-  DenseBufferedPacket *getHead() { return fHeadPacket; }
-  DenseBufferedPacket *getTail() { return fTailPacket; }
-  unsigned short getChunk() { return curChunk; }
-  void setChunk(unsigned short in) { curChunk = in; }
-  int bufferSize;
-  int bufferPackets;
+  DenseBufferedPacket *getLastCompletedPacket();         // Note: only used in unreachable code.
+  DenseBufferedPacket *getHead() { return fHeadPacket; } // Note: not used?
+  DenseBufferedPacket *getTail() { return fTailPacket; } // Note: not used?
+  unsigned short getChunk() { return curChunk; }         // Note: only used in unreachable code.
+  void setChunk(unsigned short in) { curChunk = in; }    // Note: not used?
+  int bufferSize;                                        // Note: not used?
+  int bufferPackets;                                     // Note: not used?
   /** </Dense content> **/
 
 private:
@@ -78,16 +78,17 @@ private:
   Boolean fSavedPacketFree;
 
   // <Dense Content>
-  unsigned short curChunk;
+  unsigned short curChunk; // Note: only used in unreachable code.
   // </Dense Content>
 };
 
 ////////// DenseMultiFramedRTPSource implementation //////////
 
-DenseMultiFramedRTPSource ::DenseMultiFramedRTPSource(UsageEnvironment &env, Groupsock *RTPgs,
-                                                      unsigned char rtpPayloadFormat,
-                                                      unsigned rtpTimestampFrequency,
-                                                      DenseBufferedPacketFactory *packetFactory)
+DenseMultiFramedRTPSource::DenseMultiFramedRTPSource(
+    UsageEnvironment &env, Groupsock *RTPgs,
+    unsigned char rtpPayloadFormat,
+    unsigned rtpTimestampFrequency,
+    DenseBufferedPacketFactory *packetFactory)
     : RTPSource(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency)
 {
   reset();
@@ -112,16 +113,18 @@ DenseMultiFramedRTPSource::~DenseMultiFramedRTPSource()
   delete fReorderingBuffer;
 }
 
-Boolean DenseMultiFramedRTPSource ::processSpecialHeader(DenseBufferedPacket * /*packet*/,
-                                                         unsigned &resultSpecialHeaderSize)
+Boolean DenseMultiFramedRTPSource::processSpecialHeader(
+    DenseBufferedPacket * /*packet*/,
+    unsigned &resultSpecialHeaderSize)
 {
   // Default implementation: Assume no special header:
   resultSpecialHeaderSize = 0;
   return True;
 }
 
-Boolean DenseMultiFramedRTPSource ::packetIsUsableInJitterCalculation(unsigned char * /*packet*/,
-                                                                      unsigned /*packetSize*/)
+Boolean DenseMultiFramedRTPSource::packetIsUsableInJitterCalculation(
+    unsigned char * /*packet*/,
+    unsigned /*packetSize*/)
 {
   // Default implementation:
   return True;
@@ -142,8 +145,12 @@ void DenseMultiFramedRTPSource::doStopGettingFrames()
 
 void DenseMultiFramedRTPSource::doGetNextFrame()
 {
+  UsageEnvironment &env = envir();
+  env << "TEMP: DenseMultiFramedRTPSource::doGetNextFrame()\n";
+
   if (!fAreDoingNetworkReads)
   {
+    env << "\tTurn on background read handling of incoming packets:\n";
     // Turn on background read handling of incoming packets:
     fAreDoingNetworkReads = True;
     TaskScheduler::BackgroundHandlerProc *handler = (TaskScheduler::BackgroundHandlerProc *)&networkReadHandler;
@@ -155,19 +162,28 @@ void DenseMultiFramedRTPSource::doGetNextFrame()
   fFrameSize = 0; // for now
   fNeedDelivery = True;
   doGetNextFrame1();
+  env << "<<<<: DenseMultiFramedRTPSource::doGetNextFrame()\n";
 }
 
-// This function has been heavily modified.
+// This function has been heavily modified for dense use.
 void DenseMultiFramedRTPSource::doGetNextFrame1()
 {
   UsageEnvironment &env = envir();
+  env << "TEMP: DenseMultiFramedRTPSource::doGetNextFrame1()\n";
+
   while (fNeedDelivery)
   {
+    env << "\tfNeedDelivery: True\n";
     // If we already have packet data available, then deliver it now.
     Boolean packetLossPrecededThis;
     DenseBufferedPacket *nextPacket = fReorderingBuffer->getNextCompletedPacket(packetLossPrecededThis);
     if (nextPacket == NULL)
+    {
+      env << "\tnextPacket: NULL\n";
       break;
+    }
+
+    env << "\tnextPacket: !NULL\n";
 
     fNeedDelivery = False;
 
@@ -205,6 +221,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       // We're in a multi-packet frame, with preceding packet loss
       fPacketLossInFragmentedFrame = True;
     }
+
     if (fPacketLossInFragmentedFrame)
     {
       // This packet is unusable; reject it:
@@ -216,13 +233,13 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     // <Dense Content>
     if (packetLossPrecededThis)
     {
-      fMediaSession->fPacketLoss = True;
+      // fMediaSession->fPacketLoss = True; Note: not used.
       fMediaSession->fLevelDrops++;
       fMediaSession->fTotalDrops++;
     }
 
     int use = manageQualityLevels(nextPacket);
-    // </Dense Content>
+    env << "use: " << use << "\n";
 
     // The packet is usable. Deliver all or part of it to our caller:
     unsigned frameSize;
@@ -231,7 +248,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
 
       // Groupsock *ourSocket = RTPgs();
       fMediaSession->fPacketChunk = nextPacket->chunk();
-      //env << "Use == 0\nName: " << fMediaSession->mainSessionName << "\nchunk: " << fMediaSession->fPacketChunk << "\n";
+      // env << "Use == 0\nName: " << fMediaSession->mainSessionName << "\nchunk: " << fMediaSession->fPacketChunk << "\n";
 
       nextPacket->use(fTo, fMaxSize, frameSize, fNumTruncatedBytes,
                       fCurPacketRTPSeqNum, fCurPacketRTPTimestamp,
@@ -286,6 +303,8 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       exit(0);
     }
 
+    // </Dense Content>
+
     if (fCurrentPacketCompletesFrame && fFrameSize > 0)
     {
       // We have all the data that the client wants.
@@ -301,10 +320,12 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
         // Common case optimization: There are no more queued incoming packets, so this code will not get
         // executed again without having first returned to the event loop.  Call our 'after getting' function
         // directly, because there's no risk of a long chain of recursion (and thus stack overflow):
+        env << "AfterGetting Option 1\n";
         afterGetting(this);
       }
       else
       {
+        env << "AfterGetting Option 2\n";
         // Special case: Call our 'after getting' function via the event loop.
         nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
                                                                  (TaskFunc *)FramedSource::afterGetting, this);
@@ -322,43 +343,8 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
 }
 
 // <Dense Content>
-//
-//
 
-// TODO: Is this the same as the next?
 void DenseMultiFramedRTPSource::printQLF(DenseBufferedPacket *packet)
-{
-  DenseMediaSubsession *ourSubSession = mediaSubsession();
-  DenseMediaSession *parent = fMediaSession;
-  Groupsock *ourSocket = RTPgs();
-
-  Boolean inCntrl = False;
-  Boolean nextInCntrl = False;
-  if (parent->fInControl == ourSubSession)
-  {
-    inCntrl = True;
-  }
-  if (parent->fDenseNext == ourSubSession)
-  {
-    nextInCntrl = True;
-  }
-
-  envir() << "\tManageQualityLevels:\n"
-          << "\tIn PACKET:\n"
-          << "\tid: %u" << htons(ourSocket->port().num()) << "\n"
-          << "\tLevel: %d" << ourSubSession->fLevel << "\n"
-          << "\tseqNo: %u" << packet->rtpSeqNo() << "\n"
-          << "\tpacketChunk: %u" << packet->chunk() << "\n"
-          << "\tIn SESSION:\n"
-          << "\tSourcenowChunk %u" << parent->fRTPChunk << "\n"
-          << "\tMain level %d" << parent->fCurrentLevel << "\n"
-          << "\tInControl: %s" << (inCntrl ? "True" : "False") << "\n"
-          << "\tNextInControl: %s" << (nextInCntrl ? "True" : "False") << "\n"
-          << "\tLEVEL LOSS: %d" << parent->fLevelDrops << "\n"
-          << "\tTOTAL LOSS: %d" << parent->fTotalDrops << "\n";
-}
-
-void DenseMultiFramedRTPSource::printQLT(DenseBufferedPacket *packet)
 {
   DenseMediaSubsession *ourSubSession = mediaSubsession();
   DenseMediaSession *parent = fMediaSession;
@@ -394,10 +380,8 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
 {
   UsageEnvironment &env = envir();
   DenseMediaSubsession *ourSubSession = mediaSubsession();
-  // Groupsock *ourSocket = RTPgs();
   if (packet->rtpSeqNo() % 50 == 0)
   {
-    // printQLT(packet);
     printQLF(packet);
   }
 
@@ -408,14 +392,14 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
   }
 
   /*
-  THERE ARE THREE CASES;
+  THERE ARE THREE CASES; The return values represent:
   0. The packet is usable -> its from the controlling entity and correct chunk
   1. The packet should be saved -> its from the next controlling entity, but its ahead
   2. The packet should be dropped -> its not from a controlling entity or ahead
   */
 
-  if (fMediaSession->fInControl == ourSubSession)
-  { // We are in control
+  if (fMediaSession->fInControl == ourSubSession) // We are in control
+  {
     if (packet->chunk() == fMediaSession->fRTPChunk)
     {
       return 0;
@@ -449,7 +433,6 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
             exit(0);
           }
         }
-        // printQLT(packet);
         printQLF(packet);
         fMediaSession->fRTPChunk = packet->chunk(); // THE ONLY OF TWO PLACED THIS IS UPDATED
         return 0;
@@ -459,7 +442,6 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
         finish();
         env << "Have finished (packet follows)\n";
         printQLF(packet);
-        // printQLT(packet);
       }
     }
     else
@@ -472,12 +454,9 @@ int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
   { // We are not in control
     if (packet->chunk() > fMediaSession->fRTPChunk)
     { // the packet should be saved for when we are in control
-      // printQLF(packet);
-
       return 1;
     }
   }
-
   return 2;
 }
 
@@ -507,14 +486,20 @@ void DenseMultiFramedRTPSource::finish()
     socketLeaveGroup(envir(), ourGS->socketNum(), ourSubSession->connectionEndpointAddress());
   }
 
-  env << "Finish from " << htons(ourGS->port().num()) << "\nThe level after finish: " << fMediaSession->fCurrentLevel << "\n";
+  env << "Finish from " << htons(ourGS->port().num()) << "\n";
+  env << "The level after finish: " << fMediaSession->fCurrentLevel << "\n";
 }
 
+// Note: This could be made to suport an arbitrary amount of levels.
 Boolean DenseMultiFramedRTPSource::startDown()
 {
   UsageEnvironment &env = envir();
-  env << "startdown leveldrops: " << fMediaSession->fLevelDrops << "\n";
-  // MediaSubsession *ourSubSession = mediaSubsession();
+
+  env << "DenseMultiFramedRTPSource::startDown()"
+      << "\n";
+  env << "fMediaSession->fCurrentLevel: " << fMediaSession->fCurrentLevel << "\n";
+  env << "fMediaSession->fLevelDrops: " << fMediaSession->fLevelDrops << "\n";
+
   if (fMediaSession->fCurrentLevel == 1)
   {
     if (joinZero())
@@ -549,9 +534,10 @@ Boolean DenseMultiFramedRTPSource::startDown()
 Boolean DenseMultiFramedRTPSource::startUp()
 {
   UsageEnvironment &env = envir();
-  env << "startUp -> current leven: " << fMediaSession->fCurrentLevel << "\n";
-  // MediaSubsession *ourSubSession = mediaSubsession();
-  // DenseMediaSession *parent = fMediaSession;
+  env << "DenseMultiFramedRTPSource::startUp()"
+      << "\n";
+  env << "fMediaSession->fCurrentLevel: " << fMediaSession->fCurrentLevel << "\n";
+
   if (fMediaSession->fCurrentLevel == 0)
   {
     if (joinOne())
@@ -582,13 +568,15 @@ Boolean DenseMultiFramedRTPSource::startUp()
   return False;
 }
 
+// Note: The three following functions could be merged.
 Boolean DenseMultiFramedRTPSource::joinZero()
 {
   UsageEnvironment &env = envir();
-  env << "joinzero\n";
   Groupsock *ourGS = RTPgs();
-  // MediaSubsession *ourSubsession = mediaSubsession();
-  DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubhead(); // TODO: Does this work?
+  DenseMediaSubsession *next = fMediaSession->fDenseMediaSubsessions.at(0);
+
+  env << "Joining Quality Level 0!\n";
+
   fMediaSession->fDenseNext = next;
   if (next != NULL)
   {
@@ -598,6 +586,7 @@ Boolean DenseMultiFramedRTPSource::joinZero()
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
     env << "joinZero() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
+    env << "The next level is: " << fMediaSession->fDenseNext->fLevel << "\n ";
     return True;
   }
   return False;
@@ -606,11 +595,11 @@ Boolean DenseMultiFramedRTPSource::joinZero()
 Boolean DenseMultiFramedRTPSource::joinOne()
 {
   UsageEnvironment &env = envir();
-  env << "joinone\n";
   Groupsock *ourGS = RTPgs();
-  // MediaSubsession *ourSubsession = mediaSubsession();
-  DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubhead(); // fMediaSession->fDenseHead;
-  next = next->getNext();
+  DenseMediaSubsession *next = fMediaSession->fDenseMediaSubsessions.at(1);
+
+  env << "Joining Quality Level 1!\n";
+
   fMediaSession->fDenseNext = next;
   if (next != NULL)
   {
@@ -619,12 +608,9 @@ Boolean DenseMultiFramedRTPSource::joinOne()
     RTPSource *nextSource = next->rtpSource();
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    env << "joinOne() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\nThe level of the next: " << fMediaSession->fDenseNext->fLevel << "\n";
+    env << "joinOne() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
+    env << "The next level is: " << fMediaSession->fDenseNext->fLevel << "\n ";
     return True;
-  }
-  else
-  {
-    env << "joinone have problems next == NULL\n";
   }
   return False;
 }
@@ -632,10 +618,11 @@ Boolean DenseMultiFramedRTPSource::joinOne()
 Boolean DenseMultiFramedRTPSource::joinTwo()
 {
   UsageEnvironment &env = envir();
-  env << "jointwo\n";
   Groupsock *ourGS = RTPgs();
-  // DenseMediaSubsession *ourSubsession = mediaSubsession();
-  DenseMediaSubsession *next = (DenseMediaSubsession *)fMediaSession->getSubTail(); //->fSubsessionsTail; // fDenseTail; // TODO: convert to fancy cast?
+
+  env << "Joining Quality Level 2\n";
+
+  DenseMediaSubsession *next = fMediaSession->fDenseMediaSubsessions.at(2);
   fMediaSession->fDenseNext = next;
   if (next != NULL)
   {
@@ -645,17 +632,15 @@ Boolean DenseMultiFramedRTPSource::joinTwo()
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
     env << "joinTwo() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
+    env << "The next level is: " << fMediaSession->fDenseNext->fLevel << "\n ";
     return True;
   }
   return False;
 }
 
-// </Dense Content>
-//
-//
-//
+// </Dense Content> ^^^
 
-void DenseMultiFramedRTPSource ::setPacketReorderingThresholdTime(unsigned uSeconds)
+void DenseMultiFramedRTPSource::setPacketReorderingThresholdTime(unsigned uSeconds)
 {
   fReorderingBuffer->setThresholdTime(uSeconds);
 }
@@ -668,12 +653,15 @@ void DenseMultiFramedRTPSource ::setPacketReorderingThresholdTime(unsigned uSeco
 
 void DenseMultiFramedRTPSource::networkReadHandler(DenseMultiFramedRTPSource *source, int /*mask*/)
 {
+  // NOTE: Do I have to cast instead of getting DDMFRTPS directly? it is actually a void *
+  fprintf(stderr, "TEST: DenseMultiFramedRTPSource::networkReadHandler()\n");
   source->networkReadHandler1();
 }
 
 void DenseMultiFramedRTPSource::networkReadHandler1()
 {
-
+  UsageEnvironment &env = envir();
+  env << "TEST: DenseMultiFramedRTPSource::networkReadHandler1()\n";
   unsigned chunkY;
 
   DenseBufferedPacket *bPacket = fPacketReadInProgress;
@@ -708,6 +696,7 @@ void DenseMultiFramedRTPSource::networkReadHandler1()
     {
       fPacketReadInProgress = NULL;
     }
+
 #ifdef TEST_LOSS
     setPacketReorderingThresholdTime(0);
     // don't wait for 'lost' packets to arrive out-of-order later
@@ -716,8 +705,10 @@ void DenseMultiFramedRTPSource::networkReadHandler1()
 #endif
 
     // Check for the 12-byte RTP header:
-    if (bPacket->dataSize() < 12)
+    if (bPacket->dataSize() < 12){
       break;
+    }
+
     unsigned rtpHdr = ntohl(*(u_int32_t *)(bPacket->data()));
     ADVANCE(4);
     Boolean rtpMarkerBit = (rtpHdr & 0x00800000) != 0;
@@ -901,7 +892,7 @@ void DenseBufferedPacket::assignMiscParams(
 
   // <Dense Content>
   fChunkRef = chunkRef;
-  fAddr = addr;
+  fAddr = addr; // Note: Not used ... :(
   // </Dense Content>
 }
 
@@ -992,9 +983,9 @@ DenseReorderingPacketBuffer ::DenseReorderingPacketBuffer(DenseBufferedPacketFac
                        ? (new DenseBufferedPacketFactory)
                        : packetFactory;
 
-  // <Dense Section>
-  bufferSize = 0;
-  bufferPackets = 0;
+  // <Dense Section> Note: Not used.
+  // bufferSize = 0;
+  // bufferPackets = 0;
   // </Dense Section>
 }
 
@@ -1118,10 +1109,13 @@ void DenseReorderingPacketBuffer::releaseUsedPacket(DenseBufferedPacket *packet)
   freePacket(packet);
 }
 
-DenseBufferedPacket *DenseReorderingPacketBuffer ::getNextCompletedPacket(Boolean &packetLossPreceded)
+DenseBufferedPacket *DenseReorderingPacketBuffer::getNextCompletedPacket(Boolean &packetLossPreceded)
 {
   if (fHeadPacket == NULL)
+  {
+    fprintf(stderr, "fHeadPacket == NULL!\n");
     return NULL;
+  }
 
   // Check whether the next packet we want is already at the head
   // of the queue:

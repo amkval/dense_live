@@ -16,21 +16,18 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include "include/DenseStreamClientState.hh"
 
-
-DenseStreamClientState::DenseStreamClientState()
-    : fIter(NULL), fDenseMediaSession(NULL), fDenseMediaSubsession(NULL), fStreamTimerTask(NULL), fDuration(0.0)
+DenseStreamClientState::DenseStreamClientState() : fDenseMediaSession(NULL)
 {
 }
 
 DenseStreamClientState::~DenseStreamClientState()
 {
-  delete fIter;
   if (fDenseMediaSession != NULL)
   {
     // We also need to delete "session", and unschedule "streamTimerTask" (if set)
-    UsageEnvironment &env = fDenseMediaSession->envir(); // alias
+    // UsageEnvironment &env = fDenseMediaSession->envir(); // alias
 
-    env.taskScheduler().unscheduleDelayedTask(fStreamTimerTask);
+    // env.taskScheduler().unscheduleDelayedTask(fStreamTimerTask); Note: Not used.
     Medium::close(fDenseMediaSession);
   }
 }

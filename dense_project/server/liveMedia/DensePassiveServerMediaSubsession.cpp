@@ -40,7 +40,7 @@ void DensePassiveServerMediaSubsession::getInstances(Port &serverRTPPort, Port &
   ipAddressStrSize = ipAddressStrSize + 1;
 
   char *adr = new char[ipAddressStrSize + 2];
-  sprintf(adr, ipAddressStr.val());
+  strcpy(adr, ipAddressStr.val());
   adr[ipAddressStrSize + 1] = '\0';
 }
 

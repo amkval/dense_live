@@ -89,7 +89,7 @@ protected:
   Boolean joinOne();
   Boolean joinTwo();
   void printQLF(DenseBufferedPacket *packet);
-  void printQLT(DenseBufferedPacket *packet);
+  // </Dense Section> ^^^
 
 private:
   // redefined virtual functions:
@@ -113,13 +113,12 @@ private:
   class DenseReorderingPacketBuffer *fReorderingBuffer;
 
   // <Dense Section>
-  class DenseReorderingPacketBuffer *QLBuffer;
+  class DenseReorderingPacketBuffer *QLBuffer; // Note: Not used?
 
   // Moved from RTPSource ˇ
 public:
   Boolean fThisIsMoving;
   Boolean fJustMoved;
-
   DenseMediaSession *fMediaSession;
 
 protected:
@@ -188,7 +187,7 @@ protected:
 private:
   // <Dense Section>
   unsigned short fChunkRef;
-  struct sockaddr_in *fAddr;
+  struct sockaddr_in *fAddr; // Note: Not used ... :(
   // </Dense Section>
 
   DenseBufferedPacket *fNextPacket; // used to link together packets

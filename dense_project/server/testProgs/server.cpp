@@ -42,16 +42,10 @@ int main(int argc, char **argv)
   std::string fps = argv[2];        // Framerate for the transmission
   std::string alias = "makeStream"; // TODO: Is alias the most appropriate name? Just use name?
 
-  *env << "Starting RTSP server!\n";
-  *env << "port: " << port << "\n"
-       << "reclamationSeconds: " << reclamationSeconds << "\n"
-       << "levels: " << levels << "\n"
-       << "path: " << path << "\n"
-       << "fps: " << fps << "\n"
-       << "alias: " << alias << "\n";
+  *env << "\n\nStarting RTSP server!\n";
 
   DenseRTSPServer *denseRTSPServer = DenseRTSPServer::createNew(
-      *env, port, NULL, reclamationSeconds, NULL, levels, (char *)path.c_str(), fps, alias);
+      *env, port, NULL, reclamationSeconds, False, levels, (char *)path.c_str(), fps, alias); // Note: changed NULL to false 
 
   if (denseRTSPServer == NULL)
   {

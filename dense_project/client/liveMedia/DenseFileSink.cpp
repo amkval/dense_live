@@ -23,6 +23,10 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include "include/DensePrints.hh"
 #endif
 
+#ifndef _DENSE_MULTI_FRAMED_RTP_SOURCE_HH
+#include "include/DenseMultiFramedRTPSource.hh"
+#endif
+
 #include <string>
 #include <iostream>
 
@@ -49,12 +53,88 @@ DenseFileSink *DenseFileSink::createNew(
   return new DenseFileSink(env, fid, mediaSession, bufferSize);
 }
 
+Boolean DenseFileSink::continuePlaying()
+{
+  UsageEnvironment &env = envir();
+  env << "TEMP: DenseFileSink::continuePlaying()\n";
+
+  if (fSource == NULL)
+  {
+    env << "\tthere is no fSource (FramedSource) here!\n";
+    return False;
+  }
+
+  fSource->getNextFrame(
+      fBuffer, fBufferSize,
+      afterGettingFrame, this,
+      onSourceClosure, this);
+  env << "<<<<: DenseFileSink::continuePlaying()\n";
+  return True;
+}
+
+// Note: Do we need both this one and the next?
+void DenseFileSink::afterGettingFrame(
+    void *clientData, unsigned frameSize,
+    unsigned numTruncatedBytes,
+    struct timeval presentationTime,
+    unsigned /*durationInMicroseconds*/)
+{
+
+  DenseFileSink *sink = (DenseFileSink *)clientData; //TODO: smart cast?
+  sink->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime);
+}
+
+void DenseFileSink::afterGettingFrame(
+    unsigned frameSize,
+    unsigned numTruncatedBytes,
+    struct timeval presentationTime)
+{
+  UsageEnvironment &env = envir();
+  env << "DenseFileSink::afterGettingFrame()\n";
+
+  if (numTruncatedBytes > 0)
+  {
+    env << "FileSink::afterGettingFrame(): The input frame data was too large for our buffer size ("
+        << fBufferSize << ").  "
+        << numTruncatedBytes << " bytes of trailing data was dropped!  Correct this by increasing the \"bufferSize\" parameter in the \"createNew()\" call to at least "
+        << fBufferSize + numTruncatedBytes << "\n";
+  }
+
+  addData(fBuffer, frameSize, presentationTime);
+
+  if (fOutFid == NULL || fflush(fOutFid) == EOF)
+  {
+    env << "\tfilesink closing 1\n";
+    sleep(8); //Note: is this needed? I hope not.
+
+    // The output file has closed.  Handle this the same way as if the input source had closed:
+    if (fSource != NULL){
+      fSource->stopGettingFrames();
+    }
+    env << "\tfilesink closing 2\n";
+
+    onSourceClosure();
+    return;
+  }
+
+  if (fPerFrameFileNameBuffer != NULL)
+  {
+    if (fOutFid != NULL)
+    {
+      fclose(fOutFid);
+      fOutFid = NULL;
+    }
+  }
+
+  continuePlaying();
+}
+
 /**
- * @brief 
- * 
- * @param data 
- * @param dataSize 
- * @param presentationTime 
+ * @brief
+ *
+ * @param data
+ * @param dataSize
+ * @param presentationTime
  */
 void DenseFileSink::addData(
     unsigned char const *data,
@@ -64,6 +144,7 @@ void DenseFileSink::addData(
   FileSink::addData(data, dataSize, presentationTime);
 
   UsageEnvironment &env = envir();
+  env << "TEMP! DenseFileSink::addData()\n";
 
   if (fMediaSession->fPutInLookAsideBuffer)
   {
@@ -157,13 +238,13 @@ void DenseFileSink::finishFromLookAside()
 }
 
 /**
- * @brief
+ * @brief Pull a packet after a packet loss
  *
  */
 void DenseFileSink::pullPatch()
 {
   UsageEnvironment &env = envir();
-  env << "addData PACKET LOSS PRECEEDED THIS fWritten: " << fMediaSession->fWritten << "\n";
+  env << "addData PACKET LOSS PRECEEDED THIS\n\tfWritten: " << fMediaSession->fWritten << "\n";
 
   long fileSize;
   fileSize = pullChunk(fMediaSession->fChunk);

@@ -37,11 +37,11 @@ class DenseMediaSession;
 class DenseMediaSubsession : public MediaSubsession
 {
 public:
-  static DenseMediaSubsession *createNew(UsageEnvironment &env, DenseMediaSession &parent);
+  static DenseMediaSubsession *createNew(UsageEnvironment &env, DenseMediaSession &parent, DenseMediaSession *mediaSession);
   friend class DenseMediaSession;
 
 protected:
-  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent); // TODO: verify passing of parent
+  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent, DenseMediaSession *mediaSession); // TODO: verify passing of parent
   virtual ~DenseMediaSubsession();
 
 public:
@@ -57,11 +57,11 @@ public:
     return denseControlPath.c_str();
   }
 
-  // TODO: should this be used?
-  DenseMediaSubsession *getNext() { return (DenseMediaSubsession *)fNext; }
-
-protected:
+  // Note: Not used anymore.
+  //DenseMediaSubsession *getNext() { return (DenseMediaSubsession *)fNext; }
+public:
   Boolean denseInitiate(int useSpecialRTPOffset);            // TODO: is this variable necessary?
+protected:
   Boolean denseCreateSourceObjects(int useSpecialRTPOffset); // TODO: ^
 
 public:

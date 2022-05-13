@@ -31,7 +31,7 @@ DenseMediaSession *DenseMediaSession::createNew(
 
   if (!denseMediaSession->initializeWithSDP(sdpDescription.c_str()))
   {
-    env << "Failed to initialize DenseMEdiaSession with sdpDescription\n";
+    env << "Failed to initialize DenseMediaSession with sdpDescription\n";
     delete denseMediaSession;
     exit(EXIT_FAILURE);
   }
@@ -106,9 +106,10 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
   {
     // We have a "m=" line, representing a new subsession:
 
-    // Dense
-    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this);
-    // Dense ^
+    // Dense mod
+    // Note: Fix!
+    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this, this);
+    // Dense mod ^
 
     if (subsession == NULL)
     {
@@ -117,7 +118,16 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     }
 
     // Gøte
+    if (level == 0)
+    {
+      subsession->fInit = 1;
+    }
+    else
+    {
+      subsession->fInit = 0;
+    }
     subsession->fLevel = level++; // TODO: this should be in a constructor!
+    
     // Gøte ^
 
     // Parse the line as "m=<medium_name> <client_portNum> RTP/AVP <fmt>"

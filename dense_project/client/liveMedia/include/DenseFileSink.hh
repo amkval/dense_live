@@ -21,13 +21,11 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 class DenseMediaSession; // Forward
 
 // Live Imports
-
 #ifndef _FILE_SINK_HH
 #include "FileSink.hh"
 #endif
 
 // Dense Imports
-
 #ifndef _DENSE_MEDIA_SESSION_HH
 #include "DenseMediaSession.hh"
 #endif
@@ -36,6 +34,7 @@ class DenseMediaSession; // Forward
 #include "MultiFramedRTPSource.hh"
 #endif
 
+// Note: not needed?
 //#include <cmath>
 //#include <string>
 //#include <cassert>
@@ -57,10 +56,24 @@ protected:
       unsigned bufferSize);
   virtual ~DenseFileSink();
 
-protected:
+public:
   virtual void addData(
       unsigned char const *data,
       unsigned dataSize,
+      struct timeval presentationTime);
+
+protected: // redefined virtual functions:
+  virtual Boolean continuePlaying();
+
+protected:
+  static void afterGettingFrame(
+      void *clientData, unsigned frameSize,
+      unsigned numTruncatedBytes,
+      struct timeval presentationTime,
+      unsigned durationInMicroseconds);
+  virtual void afterGettingFrame(
+      unsigned frameSize,
+      unsigned numTruncatedBytes,
       struct timeval presentationTime);
 
   long pullChunk(unsigned short chunkId);

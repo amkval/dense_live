@@ -24,6 +24,23 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include <string>
 
+static HashTable *commonDenseTable; // For static access.
+
+// Forward Class Definitions
+static Boolean parsePlayNowHeader(char const *buf);
+
+static void parseTransportHeader(
+    char const *buf,
+    StreamingMode &streamingMode,
+    char *&streamingModeString,
+    char *&destinationAddressStr,
+    u_int8_t &destinationTTL,
+    portNumBits &clientRTPPortNum,  // if UDP
+    portNumBits &clientRTCPPortNum, // if UDP
+    unsigned char &rtpChannelId,    // if TCP
+    unsigned char &rtcpChannelId    // if TCP
+);
+
 ////// DenseRTSPServer //////
 
 DenseRTSPServer *DenseRTSPServer::createNew(
@@ -75,10 +92,10 @@ DenseRTSPServer::DenseRTSPServer(
     unsigned reclamationSeconds,
     Boolean streamRTPOverTCP, int levels, std::string path, std::string fps, std::string alias)
     : RTSPServer(env, socket, port, authDatabase, reclamationSeconds),
-      fStreamRTPOverTCP(streamRTPOverTCP), fAllowStreamingRTPOverTCP(True), // TODO: Are these needed?
-      fDenseTable(HashTable::create(ONE_WORD_HASH_KEYS)),
       fLevels(levels), fPath(path), fAlias(alias), fStartPort(port.num()),
-      fStartTime({0}), fFPS(std::stoi(fps)), fNextServer(NULL)
+      fStartTime({0}), fFPS(std::stoi(fps)), fNextServer(NULL),
+      fStreamRTPOverTCP(streamRTPOverTCP), fAllowStreamingRTPOverTCP(True), // TODO: Are these needed?
+      fDenseTable(HashTable::create(ONE_WORD_HASH_KEYS))
 {
 }
 
@@ -87,17 +104,65 @@ DenseRTSPServer::~DenseRTSPServer()
   cleanup();
 }
 
+void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
+{
+  const char *line;
+
+  int teller = 1;
+  DenseSession *closeSessionPointer;
+  closeSessionPointer = (DenseSession *)commonDenseTable->Lookup(std::to_string(teller).c_str());
+  while (closeSessionPointer != NULL)
+  {
+    DenseServerMediaSession *session = dynamic_cast<DenseServerMediaSession *>(closeSessionPointer->fServerMediaSession);
+    if (session == NULL)
+    {
+      fprintf(stderr, "Failed miserably to cast Session!. :(");
+    }
+
+    int subTeller = session->numSubsessions();
+
+    if (subTeller != 1)
+    {
+      fprintf(stderr, "Something went wrong, there are more than one subsession on this serversession on this DenseSession"); // What ever that means.
+      exit(0);
+    }
+
+    ServerMediaSubsession *subsession = *session->fServerMediaSubsessionVector.begin();
+    if (subsession == NULL)
+    {
+      fprintf(stderr, "Subsession is NULL, something went wrong :(\n");
+    }
+
+    line = subsession->sdpLines();
+    linepointer.append(line);
+    if (line != NULL)
+    {
+      fprintf(stderr, "Her har vi en line fra en subsession: %s\n", line);
+    }
+    else
+    {
+      fprintf(stderr, "Line == NULL unfortunately :/\n");
+    }
+    closeSessionPointer = (DenseSession *)commonDenseTable->Lookup(std::to_string(++teller).c_str());
+  }
+
+  fprintf(stderr, "outside of the whileloop in getQualityLevelsSDP and have assembled:\n%s\n", linepointer.c_str());
+}
+
 void DenseRTSPServer::make(int level)
 {
   UsageEnvironment &env = envir();
 
-  env << "Making DenseSession with id: " << level << ", name " << fAlias.c_str() << ", and startPort " << fStartPort << "\n";
+  env << "Make 'DenseSession':\n" 
+      << "\tlevel: " << level << "\n" 
+      << "\tname: " << fAlias.c_str() << "\n" 
+      << "\tstartPort: " << fStartPort << "\n";
 
   DenseSession *denseSession = createNewDenseSession(this);
 
   // Create 'ServerMediaSession'
   std::string denseName = fAlias + std::to_string(level);
-  env << "denseName: \"" << denseName.c_str() << "\"\n";
+  env << "\tdenseName: \"" << denseName.c_str() << "\"\n";
 
   ServerMediaSession *sms = ServerMediaSession::createNew(
       env,
@@ -133,7 +198,7 @@ void DenseRTSPServer::make(int level)
   denseSession->setRTCPGroupsock(env, destinaionAddress, rtcpPort, ttl);
 
   // Make VideoSink or ManifestRTPSink
-  env << "Make Video Sink\n";
+  env << "Make 'VideoSink'\n";
 
   // Create 'H264 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 100000; // TODO: Do we need to do this here every time?
@@ -153,7 +218,7 @@ void DenseRTSPServer::make(int level)
   denseSession->setVideoSink(manifestRTPSink);
 
   // Make RTCP Instance
-  env << "Make RTCP Instance\n";
+  env << "Make 'RTCPInstance'\n";
 
   // Create and start a 'RTCP instance' for this RTP sink:
   const unsigned estimatedSessionBandwidth = 500; // in kbps; for RTCP b/w share
@@ -180,7 +245,7 @@ void DenseRTSPServer::make(int level)
       denseSession->fRTCP));
 
   // Make 'CheckSource'
-  env << "Make CheckSource\n";
+  env << "Make 'CheckSource'\n";
 
   // TODO: move hard coded values?
   std::string base = fPath;
@@ -229,18 +294,50 @@ void DenseRTSPServer::make(int level)
 
   // std::string key = "makeStream" + std::to_string(level);
   // fprintf(stderr, "key: \"%s\"\n", key.c_str());
-  fDenseTable->Add((char const *)level, denseSession);
+  fDenseTable->Add(std::to_string(level).c_str(), denseSession);
+  commonDenseTable = fDenseTable;
+
   env << "Make finished\n";
+}
+
+ServerMediaSession *DenseRTSPServer::findSession(char const *streamName)
+{
+
+  int i = 0;
+
+  DenseSession *session = (DenseSession *)fDenseTable->Lookup(std::to_string(i).c_str());
+
+  while (session != NULL)
+  {
+    if (session->fServerMediaSession->streamName() != NULL || streamName != NULL)
+    {
+      fprintf(stderr, "\nlooking for match: %s and %s with i: %d\n", session->fServerMediaSession->streamName(), streamName, i);
+
+      if (strcmp(session->fServerMediaSession->streamName(), streamName) == 0)
+      {
+        fprintf(stderr, "\nfound a match: %s and %s\n", session->fServerMediaSession->streamName(), streamName);
+
+        return session->fServerMediaSession;
+
+        if (strcmp(session->fServerMediaSession->streamName(), "makeStream1") == 0)
+        {
+          exit(0);
+        }
+      }
+    }
+    session = (DenseSession *)fDenseTable->Lookup(std::to_string(i++).c_str());
+  }
+
+  return NULL;
 }
 
 // TODO: implement
 void DenseRTSPServer::afterPlaying1(void * /*clientData*/)
 {
- //TODO: Reimplement CommonDenseTable?
-  /*
-  for (int i = 0; i < fLevels; i++)
+  // TODO: Reimplement CommonDenseTable?
+  for (int i = 0; i < 3; i++) // Note: Having 3 hardcoded is a bad idea.
   {
-    DenseSession *denseSession = (DenseSession *)fDenseTable->Lookup((char const *)i);
+    DenseSession *denseSession = (DenseSession *)commonDenseTable->Lookup(std::to_string(i).c_str());
     if (denseSession != NULL)
     {
       denseSession->fVideoSink->stopPlaying();
@@ -248,8 +345,6 @@ void DenseRTSPServer::afterPlaying1(void * /*clientData*/)
       Medium::close(denseSession->fRTCP);
     }
   }
-  */
-
 }
 
 void DenseRTSPServer::makeNextTuple()
@@ -261,7 +356,7 @@ void DenseRTSPServer::makeNextTuple()
       htons(fStartPort) + 10,
       NULL,
       65U,
-      NULL,
+      False, // Note: Repaced NULL with False
       fLevels,
       fPath,
       std::to_string(fFPS),
@@ -282,10 +377,10 @@ DenseRTSPServer::DenseSession *DenseRTSPServer::createNewDenseSession(DenseRTSPS
   return new DenseSession(denseServer);
 }
 
-DenseRTSPServer::DenseSession::DenseSession(DenseRTSPServer *denseServer)
+DenseRTSPServer::DenseSession::DenseSession(DenseRTSPServer *denseRTSPServer)
     : fRTPGroupsock(NULL), fRTCPGroupsock(NULL), fVideoSink(NULL),
       fRTCP(NULL), fPassiveSession(NULL), fServerMediaSession(NULL),
-      fFileSource(NULL), fVideoSource(NULL), fDenseServer(denseServer)
+      fFileSource(NULL), fVideoSource(NULL), fDenseServer(denseRTSPServer)
 {
 }
 
@@ -751,7 +846,8 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_OPTIONS(char *urlSuff
   UsageEnvironment &env = envir();
   env << "\n###### handleCmd_OPTIONS ######\n";
 
-  ServerMediaSession *session = fOurServer.lookupServerMediaSession(urlSuffix);
+  // Note: Unused
+  // ServerMediaSession *session = fOurServer.lookupServerMediaSession(urlSuffix);
 
   snprintf((char *)fResponseBuffer, sizeof fResponseBuffer,
            "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sPublic: %s\r\n\r\n",
@@ -819,7 +915,8 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
       break;
     }
 
-    int fNumStreamStates = session->numSubsessions();
+    // Note: Unused
+    // int fNumStreamStates = session->numSubsessions();
 
     // Increment the "ServerMediaSession" object's reference count, in case someone removes it
     // while we're using it:
@@ -1304,7 +1401,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
     }
 
     ServerMediaSubsession *subsession = NULL;
-    unsigned trackNum;
+    //unsigned trackNum; //Note: unused
 
     ServerMediaSubsessionIterator iter(*sms);
     subsession = iter.next();
@@ -1325,7 +1422,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
     fprintf(stderr, "   handleCmd_SETUP Looking for client parameters\n%s\n", fullRequestStr);
 
     DensePassiveServerMediaSubsession *cast = dynamic_cast<DensePassiveServerMediaSubsession *>(subsession);
-    netAddressBits destinationAddress = 0; // TODO: Get this from subsession!
+    //netAddressBits destinationAddress = 0; // TODO: Get this from subsession! Note: But is it not used?
     Groupsock gs = cast->gs();
     AddressString groupAddressStr(gs.groupAddress());
 
@@ -1369,7 +1466,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
 }
 
 // Misc
-static Boolean parsePlayNowHeader(char const *buf)
+Boolean parsePlayNowHeader(char const *buf)
 {
   // Find "x-playNow:" header, if present
   while (1)
@@ -1384,7 +1481,7 @@ static Boolean parsePlayNowHeader(char const *buf)
   return True;
 }
 
-static void parseTransportHeader(
+void parseTransportHeader(
     char const *buf,
     StreamingMode &streamingMode,
     char *&streamingModeString,
@@ -1421,3 +1518,71 @@ static void parseTransportHeader(
     }
     ++buf;
   }
+
+  // Transport: RTP/AVP;multicast;port=18888-18889
+
+  // Then, run through each of the fields, looking for ones we handle:
+  char const *fields = buf + 10;
+  fprintf(stderr, "pling 0: %s\n", fields);
+  while (*fields == ' ')
+    ++fields;
+  char *field = strDupSize(fields);
+  while (sscanf(fields, "%[^;\r\n]", field) == 1)
+  {
+    if (strcmp(field, "RTP/AVP/TCP") == 0)
+    {
+      fprintf(stderr, "pling 1\n");
+
+      streamingMode = RTP_TCP;
+    }
+    else if (strcmp(field, "RAW/RAW/UDP") == 0 ||
+             strcmp(field, "MP2T/H2221/UDP") == 0)
+    {
+      fprintf(stderr, "pling 2\n");
+      streamingMode = RAW_UDP;
+      streamingModeString = strDup(field);
+    }
+    else if (_strncasecmp(field, "destination=", 12) == 0)
+    {
+      fprintf(stderr, "pling 3\n");
+      delete[] destinationAddressStr;
+      destinationAddressStr = strDup(field + 12);
+    }
+    else if (sscanf(field, "ttl%u", &ttl) == 1)
+    {
+      fprintf(stderr, "pling 4\n");
+      destinationTTL = (u_int8_t)ttl;
+    } /*else if (sscanf(field, "port=%hu-%hu", &p1, &p2) == 2) {
+      fprintf(stderr, "pling 5\n");
+
+      clientRTPPortNum = p1;
+      clientRTCPPortNum = streamingMode == RAW_UDP ? 0 : p2; // ignore the second port number if the client asked for raw UDP
+    }*/
+    else if (sscanf(field, "client_port=%hu-%hu", &p1, &p2) == 2)
+    {
+      fprintf(stderr, "pling 5\n");
+
+      clientRTPPortNum = p1;
+      clientRTCPPortNum = streamingMode == RAW_UDP ? 0 : p2; // ignore the second port number if the client asked for raw UDP
+    }
+    else if (sscanf(field, "client_port=%hu", &p1) == 1)
+    {
+      fprintf(stderr, "pling 6\n");
+      clientRTPPortNum = p1;
+      clientRTCPPortNum = streamingMode == RAW_UDP ? 0 : p1 + 1;
+    }
+    else if (sscanf(field, "interleaved=%u-%u", &rtpCid, &rtcpCid) == 2)
+    {
+      fprintf(stderr, "pling 7\n");
+      rtpChannelId = (unsigned char)rtpCid;
+      rtcpChannelId = (unsigned char)rtcpCid;
+    }
+
+    fields += strlen(field);
+    while (*fields == ';' || *fields == ' ' || *fields == '\t')
+      ++fields; // skip over separating ';' chars or whitespace
+    if (*fields == '\0' || *fields == '\r' || *fields == '\n')
+      break;
+  }
+  delete[] field;
+}

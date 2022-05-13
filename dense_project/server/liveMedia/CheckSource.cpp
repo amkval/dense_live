@@ -26,8 +26,6 @@ CheckSource *CheckSource::createNew(
     unsigned preferredFrameSize,
     unsigned playTimePerFrame)
 {
-  env << "Constructing 'CheckSource' \n";
-
   FILE *fid = OpenInputFile(env, (const char *)fileName.c_str()); // TODO: is this cast legal?
   if (fid == NULL)
   {
@@ -47,8 +45,9 @@ CheckSource *CheckSource::createNew(
   std::string newPath = checkSource->fPath + (char *)checkSource->fChunks[0]; // TODO: do we need cast?
   newPath.erase(newPath.length() - 1);                                        // TODO: Make better solution
 
-  env << "newPath: " << newPath.c_str() << "\n";
-  env << "checkSource->fPath: " << checkSource->fPath.c_str() << ", " << checkSource->fChunks[0] << "\n";
+  env << "\tnewPath: " << newPath.c_str() << "\n"
+      << "\tcheckSource->fPath: " << checkSource->fPath.c_str() << "\n"
+      << "\tcheckSource->fChunks[0]: " << checkSource->fChunks[0] << "\n";
 
   FILE *newFid = OpenInputFile(env, newPath.c_str());
   if (newFid == NULL)
@@ -60,7 +59,7 @@ CheckSource *CheckSource::createNew(
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
 
   // TODO: potentially print uint64_t
-  env << "checkSource->fFileSize: " <<  std::to_string(checkSource->fFileSize).c_str() << "\n";
+  env << "\tcheckSource->fFileSize: " << std::to_string(checkSource->fFileSize).c_str() << "\n";
 
   return checkSource;
 }
@@ -107,7 +106,7 @@ int CheckSource::stripChunks()
 
   getline(&line, &size, fFid);
 
-  fprintf(stderr, "line: %s", line);
+  // fprintf(stderr, "line: %s", line);
 
   if (line[0] != '#')
   {
@@ -117,7 +116,7 @@ int CheckSource::stripChunks()
 
   while (getline(&line, &size, fFid) > 0)
   {
-    fprintf(stderr, "line: %s", line);
+    // fprintf(stderr, "line: %s", line);
     if (line[0] != '#')
     {
       memcpy(fChunks[chunkCount], line, strlen(line) + 1);

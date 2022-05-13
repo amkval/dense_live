@@ -55,6 +55,6 @@ DenseServerMediaSession *DenseServerMediaSession::createNew(
 
 Boolean DenseServerMediaSession::addSubsession(ServerMediaSubsession *subsession)
 {
-  ServerMediaSession::addSubsession(subsession);
   fServerMediaSubsessionVector.push_back(subsession);
+  return ServerMediaSession::addSubsession(subsession);
 }
