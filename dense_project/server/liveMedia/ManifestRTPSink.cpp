@@ -111,7 +111,6 @@ Boolean ManifestRTPSink::continuePlaying()
 {
   // Send the first packet.
   // (This will also schedule any future sends.)
-  envir() << "We are here!\n";
   buildAndSendPacket(True);
   return True;
 }

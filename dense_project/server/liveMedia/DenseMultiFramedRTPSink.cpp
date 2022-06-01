@@ -183,6 +183,7 @@ void DenseMultiFramedRTPSink::setFramePadding(unsigned numPaddingBytes)
 
 Boolean DenseMultiFramedRTPSink::continuePlaying()
 {
+  fprintf(stderr, "CHECKPOINT!\n");
   // Send the first packet.
   // (This will also schedule any future sends.)
   buildAndSendPacket(True);

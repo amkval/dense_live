@@ -36,6 +36,10 @@ class ManifestRTPSink;
 #include "CheckSource.hh"
 #endif
 
+#ifndef _DENSE_SERVER_MEDIA_SESSION
+#include "DenseServerMediaSession.hh"
+#endif
+
 // Other Imports
 #include <string>
 
@@ -127,7 +131,7 @@ public:
       fVideoSink = manifestRTPSink;
     }
 
-    void setServerMediaSession(ServerMediaSession *serverMediaSession)
+    void setServerMediaSession(DenseServerMediaSession *serverMediaSession)
     {
       fServerMediaSession = serverMediaSession;
     }
@@ -153,7 +157,7 @@ public:
     ManifestRTPSink *fVideoSink;                   // RTP VideoSink
     RTCPInstance *fRTCP;                           // RTCP Instance
     PassiveServerMediaSubsession *fPassiveSession; // Passive Server Media Subsession
-    ServerMediaSession *fServerMediaSession;       // Server Media Session
+    DenseServerMediaSession *fServerMediaSession;       // Server Media Session
     CheckSource *fFileSource;                      // File Source
     MPEG2TransportStreamFramer *fVideoSource;      // Video Source
     DenseRTSPServer *fDenseServer;                 // Dense Server

@@ -109,14 +109,13 @@ void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
   const char *line;
 
   int teller = 1;
-  DenseSession *closeSessionPointer;
-  closeSessionPointer = (DenseSession *)commonDenseTable->Lookup(std::to_string(teller).c_str());
+  DenseSession *closeSessionPointer = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(teller))[0]);
   while (closeSessionPointer != NULL)
   {
-    DenseServerMediaSession *session = dynamic_cast<DenseServerMediaSession *>(closeSessionPointer->fServerMediaSession);
+    DenseServerMediaSession *session = closeSessionPointer->fServerMediaSession;
     if (session == NULL)
     {
-      fprintf(stderr, "Failed miserably to cast Session!. :(");
+      fprintf(stderr, "ServerMediaSession does not exist. :(\n");
     }
 
     int subTeller = session->numSubsessions();
@@ -143,10 +142,10 @@ void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
     {
       fprintf(stderr, "Line == NULL unfortunately :/\n");
     }
-    closeSessionPointer = (DenseSession *)commonDenseTable->Lookup(std::to_string(++teller).c_str());
+    closeSessionPointer = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(++teller))[0]);
   }
 
-  fprintf(stderr, "outside of the whileloop in getQualityLevelsSDP and have assembled:\n%s\n", linepointer.c_str());
+  fprintf(stderr, "outside of the while loop in getQualityLevelsSDP and have assembled:\n%s\n", linepointer.c_str());
 }
 
 void DenseRTSPServer::make(int level)
@@ -164,13 +163,13 @@ void DenseRTSPServer::make(int level)
   std::string denseName = fAlias + std::to_string(level);
   env << "\tdenseName: \"" << denseName.c_str() << "\"\n";
 
-  ServerMediaSession *sms = ServerMediaSession::createNew(
+  DenseServerMediaSession *sms = DenseServerMediaSession::createNew(
       env,
       denseName.c_str(),
       NULL,
       "Session streamed by \"denseServer\"",
       False,
-      "a=x-qt-text-misc:yo yo mood"); // TODO: Change "yo yo mood" to something more appropriate
+      "a=x-qt-text-misc:yo yo mood\n"); // TODO: Change "yo yo mood" to something more appropriate
   addServerMediaSession(sms);
 
   char *url = rtspURL(sms);
@@ -286,16 +285,15 @@ void DenseRTSPServer::make(int level)
   denseSession->setVideoSource(videoSource);
   // videoSource->removeLookAside(); // TODO: Do we need this?
 
-  env << "Start Playing\n";
-
-  denseSession->fVideoSink->startPlaying(*videoSource, afterPlaying1, denseSession->fVideoSink);
-
   env << "Add DenseSession to DenseTable\n";
 
   // std::string key = "makeStream" + std::to_string(level);
-  // fprintf(stderr, "key: \"%s\"\n", key.c_str());
-  fDenseTable->Add(std::to_string(level).c_str(), denseSession);
+  fDenseTable->Add((const char *)(std::to_string(level))[0], denseSession);
   commonDenseTable = fDenseTable;
+
+  env << "Start Playing\n";
+
+  denseSession->fVideoSink->startPlaying(*videoSource, afterPlaying1, denseSession->fVideoSink);
 
   env << "Make finished\n";
 }
@@ -305,7 +303,7 @@ ServerMediaSession *DenseRTSPServer::findSession(char const *streamName)
 
   int i = 0;
 
-  DenseSession *session = (DenseSession *)fDenseTable->Lookup(std::to_string(i).c_str());
+  DenseSession *session = (DenseSession *)fDenseTable->Lookup((const char *)(std::to_string(i))[0]);
 
   while (session != NULL)
   {
@@ -325,7 +323,7 @@ ServerMediaSession *DenseRTSPServer::findSession(char const *streamName)
         }
       }
     }
-    session = (DenseSession *)fDenseTable->Lookup(std::to_string(i++).c_str());
+    session = (DenseSession *)fDenseTable->Lookup((const char *)(std::to_string(i++))[0]);
   }
 
   return NULL;
@@ -337,7 +335,7 @@ void DenseRTSPServer::afterPlaying1(void * /*clientData*/)
   // TODO: Reimplement CommonDenseTable?
   for (int i = 0; i < 3; i++) // Note: Having 3 hardcoded is a bad idea.
   {
-    DenseSession *denseSession = (DenseSession *)commonDenseTable->Lookup(std::to_string(i).c_str());
+    DenseSession *denseSession = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(i))[0]);
     if (denseSession != NULL)
     {
       denseSession->fVideoSink->stopPlaying();
@@ -356,7 +354,7 @@ void DenseRTSPServer::makeNextTuple()
       htons(fStartPort) + 10,
       NULL,
       65U,
-      False, // Note: Repaced NULL with False
+      False, // Note: Replaced NULL with False
       fLevels,
       fPath,
       std::to_string(fFPS),
@@ -439,7 +437,7 @@ DenseRTSPServer::DenseRTSPClientConnection::~DenseRTSPClientConnection()
 // TODO: Cleanup
 void DenseRTSPServer::DenseRTSPClientConnection::handleRequestBytes(int newBytesRead)
 {
-  fprintf(stderr, "RTSPDenseClientConnection::handleRequestBytes\n");
+  fprintf(stderr, "DenseRTSPClientConnection::handleRequestBytes()\n");
 
   int numBytesRemaining = 0;
   ++fRecursionCount;
@@ -803,7 +801,7 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleRequestBytes(int newBytes
       }
     }
 
-    fprintf(stderr, "sending response: %s", fResponseBuffer);
+    fprintf(stderr, "sending response: \n\n%s\n\n", fResponseBuffer);
     send(fClientOutputSocket, (char const *)fResponseBuffer, strlen((char *)fResponseBuffer), 0);
 
     if (playAfterSetup)
@@ -879,7 +877,7 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
     }
     strcat(urlTotalSuffix, urlSuffix);
 
-    fprintf(stderr, "     Have assembled url-total-suffix: %s\n", urlTotalSuffix);
+    fprintf(stderr, "urlTotalSuffix: %s\n", urlTotalSuffix);
 
     if (!authenticationOK("DESCRIBE", urlTotalSuffix, fullRequestStr))
     {
@@ -901,8 +899,13 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
       i++;
     }
 
-    DenseRTSPServer *cast = (DenseRTSPServer *)correct;
-    closeSessionPointer = (DenseSession *)cast->fDenseTable->Lookup((char const *)0);
+    fprintf(stderr, "Key: '%s'\n", std::to_string(0).c_str());
+    closeSessionPointer = (DenseSession *)correct->fDenseTable->Lookup((const char *)(std::to_string(0))[0]); // Note: Always 0!
+    if(closeSessionPointer == NULL)
+    {
+      fprintf(stderr, "Element does not exist in table.\n");
+    }
+
     fprintf(stderr, "\nTrying to find the correct tuple to return on the describe: %d\n", i);
 
     // Begin by looking up the "ServerMediaSession" object for the specified "urlTotalSuffix":
@@ -934,12 +937,13 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
 
     sdpDescriptionSize = strlen(sdpDescription);
 
-    fprintf(stderr, "   have assembled a sdpDescription: \n%s\n", sdpDescription);
+    fprintf(stderr, "////// SDP_DESCRIPTION //////\n");
+    fprintf(stderr, "sdpDescription: \n\n%s\n", sdpDescription);
 
     std::string fetch;
     fDenseRTSPServer.getQualityLevelSDP(fetch);
 
-    fprintf(stderr, "   have assembled a sdplevels: \n%s\n", fetch.c_str());
+    fprintf(stderr, "sdplevels: \n%s\n", fetch.c_str());
 
     sdpDescriptionSize = strlen(sdpDescription) + fetch.size();
 
@@ -961,7 +965,7 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
              sdpDescriptionSize,
              sdpDescription, fetch.c_str());
 
-    fprintf(stderr, "   the total in the fResponseBuffer is now%s\n", (char *)fResponseBuffer);
+    fprintf(stderr, "fResponseBuffer START: \n\n%s\n\n fResponseBuffer STOP! \n\n", (char *)fResponseBuffer);
 
   } while (0);
 
@@ -1391,13 +1395,13 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
 
     if (sms == NULL)
     {
-      fprintf(stderr, "   handleCmd_SETUP Server Media Session = did not find a sms\n");
+      fprintf(stderr, "handleCmd_SETUP Server Media Session = did not find a sms\n");
       ourClientConnection->handleCmd_notFound();
     }
     else
     {
       sms->incrementReferenceCount();
-      fprintf(stderr, "   handleCmd_SETUP Server Media Session -> sms != NULL refcount er: %u\n", sms->referenceCount());
+      fprintf(stderr, "handleCmd_SETUP Server Media Session -> sms != NULL refcount er: %u\n", sms->referenceCount());
     }
 
     ServerMediaSubsession *subsession = NULL;
@@ -1418,8 +1422,8 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
       }
     }
 
-    fprintf(stderr, "  see dynamic cast!\n%s\n", subsession->sdpLines());
-    fprintf(stderr, "   handleCmd_SETUP Looking for client parameters\n%s\n", fullRequestStr);
+    fprintf(stderr, "see dynamic cast!\n%s\n", subsession->sdpLines());
+    fprintf(stderr, "handleCmd_SETUP Looking for client parameters\n%s\n", fullRequestStr);
 
     DensePassiveServerMediaSubsession *cast = dynamic_cast<DensePassiveServerMediaSubsession *>(subsession);
     //netAddressBits destinationAddress = 0; // TODO: Get this from subsession! Note: But is it not used?
@@ -1460,7 +1464,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
 
   } while (0);
 
-  fprintf(stderr, "Sending response to setup\n%s\n\n", (char *)ourClientConnection->fResponseBuffer);
+  fprintf(stderr, "Sending response to setup\n\n%s\n\n", (char *)ourClientConnection->fResponseBuffer);
 
   delete[] concatenatedStreamName;
 }
