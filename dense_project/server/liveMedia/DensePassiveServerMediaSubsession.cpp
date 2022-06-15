@@ -54,4 +54,4 @@ Groupsock DensePassiveServerMediaSubsession::RTCPgs()
   return *(fRTCPInstance->RTCPgs());
 }
 
-// TODO: sdpLines is also modified, but does it actually do anything (differently?)?
+// Note: sdpLines is also modified, but does it actually do anything (differently?)?

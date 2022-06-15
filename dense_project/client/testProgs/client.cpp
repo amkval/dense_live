@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   }
 
   // There are argc-1 URLs: argv[1] through argv[argc-1]. Open and start streaming each one:
-  // TODO: Does it make sense to accept more than one url?
+  // Note: Does it make sense to accept more than one url?
   for (int i = 1; i <= argc - 1; i++)
   {
     openURL(*env, argv[0], argv[i]);

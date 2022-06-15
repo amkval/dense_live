@@ -332,15 +332,15 @@ ServerMediaSession *DenseRTSPServer::findSession(char const *streamName)
 // TODO: implement
 void DenseRTSPServer::afterPlaying1(void * /*clientData*/)
 {
-  // TODO: Reimplement CommonDenseTable?
   for (int i = 0; i < 3; i++) // Note: Having 3 hardcoded is a bad idea.
   {
     DenseSession *denseSession = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(i))[0]);
     if (denseSession != NULL)
     {
-      denseSession->fVideoSink->stopPlaying();
-      Medium::close(denseSession->fVideoSink);
-      Medium::close(denseSession->fRTCP);
+      // TODO: Figure out this, make it not segfault.
+      //denseSession->fVideoSink->stopPlaying();
+      //Medium::close(denseSession->fVideoSink);
+      //Medium::close(denseSession->fRTCP);
     }
   }
 }

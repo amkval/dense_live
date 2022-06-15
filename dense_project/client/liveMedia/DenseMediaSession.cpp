@@ -353,7 +353,7 @@ Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
  * @return Boolean True if found, False if not.
  */
 Boolean DenseMediaSession::parseSDPLine_xmisc(char const *sdpLine)
-{ // a=x-qt-text-misc:yo yo mood // TODO: change to more sensible
+{ // a=x-qt-text-misc:yo yo mood // TODO: change to something more sensible
   // Check for "a=x-qt-text-misc" line
   Boolean parseSuccess = False;
   char *buffer = strDupSize(sdpLine); // ensures we have enough space

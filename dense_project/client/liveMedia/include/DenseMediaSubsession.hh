@@ -41,7 +41,7 @@ public:
   friend class DenseMediaSession;
 
 protected:
-  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent, DenseMediaSession *mediaSession); // TODO: verify passing of parent
+  DenseMediaSubsession(UsageEnvironment &env, DenseMediaSession &parent, DenseMediaSession *mediaSession);
   virtual ~DenseMediaSubsession();
 
 public:

@@ -80,7 +80,7 @@ void DenseFileSink::afterGettingFrame(
     unsigned /*durationInMicroseconds*/)
 {
 
-  DenseFileSink *sink = (DenseFileSink *)clientData; //TODO: smart cast?
+  DenseFileSink *sink = (DenseFileSink *)clientData;
   sink->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime);
 }
 

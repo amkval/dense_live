@@ -295,12 +295,10 @@ Boolean DenseMediaSubsession::denseCreateSourceObjects(int useSpecialRTPoffset)
 
       //env() << "TEMP: We are here and are about to make a new fRTPSource!\n";
 
-      // TODO: remove previously initiated source or prevent it from being made?
       fRTPSource = DenseSimpleRTPSource::createNew(
           env(), fRTPSocket, fRTPPayloadFormat,
           fRTPTimestampFrequency, "video/MP2T",
           0, False);
-      // TODO: Move to constructor or make prettier?
 
       if (fMediaSession == NULL)
       {
