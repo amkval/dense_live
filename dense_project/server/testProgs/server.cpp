@@ -38,7 +38,7 @@ int main(int argc, char **argv)
   int port = 51273;                  // TODO: why this port?
   unsigned reclamationSeconds = 65U; // TODO: what does this signify?
   int levels = 3;                    // Number of quality levels for the server to serve
-  std::string path = argv[1];        // Path of the running program
+  std::string path = argv[1];        // Location of video files
   std::string fps = argv[2];        // Framerate for the transmission
   std::string alias = "makeStream"; // TODO: Is alias the most appropriate name? Just use name?
 

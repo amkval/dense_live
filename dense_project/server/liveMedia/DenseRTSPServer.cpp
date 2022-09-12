@@ -1,18 +1,3 @@
-/**********
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation; either version 3 of the License, or (at your
-option) any later version. (See <http://www.gnu.org/copyleft/lesser.html>.)
-
-This library is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this library; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-**********/
 // TODO: additional information
 
 #include "RTSPCommon.hh"
@@ -152,9 +137,9 @@ void DenseRTSPServer::make(int level)
 {
   UsageEnvironment &env = envir();
 
-  env << "Make 'DenseSession':\n" 
-      << "\tlevel: " << level << "\n" 
-      << "\tname: " << fAlias.c_str() << "\n" 
+  env << "Make 'DenseSession':\n"
+      << "\tlevel: " << level << "\n"
+      << "\tname: " << fAlias.c_str() << "\n"
       << "\tstartPort: " << fStartPort << "\n";
 
   DenseSession *denseSession = createNewDenseSession(this);
@@ -293,7 +278,7 @@ void DenseRTSPServer::make(int level)
 
   env << "Start Playing\n";
 
-  denseSession->fVideoSink->startPlaying(*videoSource, afterPlaying1, denseSession->fVideoSink);
+  denseSession->fVideoSink->startPlaying(*videoSource, afterPlaying1, denseSession);
 
   env << "Make finished\n";
 }
@@ -329,20 +314,21 @@ ServerMediaSession *DenseRTSPServer::findSession(char const *streamName)
   return NULL;
 }
 
-// TODO: implement
-void DenseRTSPServer::afterPlaying1(void * /*clientData*/)
+void DenseRTSPServer::afterPlaying1(void *clientData)
 {
-  for (int i = 0; i < 3; i++) // Note: Having 3 hardcoded is a bad idea.
-  {
-    DenseSession *denseSession = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(i))[0]);
-    if (denseSession != NULL)
-    {
-      // TODO: Figure out this, make it not segfault.
-      //denseSession->fVideoSink->stopPlaying();
-      //Medium::close(denseSession->fVideoSink);
-      //Medium::close(denseSession->fRTCP);
-    }
-  }
+  fprintf(stderr, "AFTER PLAYING\n");
+  DenseSession *denseSession = (DenseSession *)clientData;
+
+  fprintf(stderr, "Stopping video sink\n");
+  denseSession->fVideoSink->stopPlaying();
+
+  fprintf(stderr, "closing fVideoSink\n");
+  Medium::close(denseSession->fVideoSink);
+
+  fprintf(stderr, "closing fRTCP\n");
+  Medium::close(denseSession->fRTCP);
+
+  fprintf(stderr, "AFTER PLAYING FINISHED\n");
 }
 
 void DenseRTSPServer::makeNextTuple()
@@ -363,7 +349,7 @@ void DenseRTSPServer::makeNextTuple()
   fNextServer = rtspServer;
 
   fprintf(stderr, "makeNextTuple() startPort: %d\n", fStartPort);
-  sleep(2); // TODO: Remove?
+  //sleep(2); // TODO: Remove?
 }
 
 ///// DenseSession /////
@@ -901,7 +887,7 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
 
     fprintf(stderr, "Key: '%s'\n", std::to_string(0).c_str());
     closeSessionPointer = (DenseSession *)correct->fDenseTable->Lookup((const char *)(std::to_string(0))[0]); // Note: Always 0!
-    if(closeSessionPointer == NULL)
+    if (closeSessionPointer == NULL)
     {
       fprintf(stderr, "Element does not exist in table.\n");
     }
@@ -1405,7 +1391,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
     }
 
     ServerMediaSubsession *subsession = NULL;
-    //unsigned trackNum; //Note: unused
+    // unsigned trackNum; //Note: unused
 
     ServerMediaSubsessionIterator iter(*sms);
     subsession = iter.next();
@@ -1426,7 +1412,7 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
     fprintf(stderr, "handleCmd_SETUP Looking for client parameters\n%s\n", fullRequestStr);
 
     DensePassiveServerMediaSubsession *cast = dynamic_cast<DensePassiveServerMediaSubsession *>(subsession);
-    //netAddressBits destinationAddress = 0; // TODO: Get this from subsession! Note: But is it not used?
+    // netAddressBits destinationAddress = 0; // TODO: Get this from subsession! Note: But is it not used?
     Groupsock gs = cast->gs();
     AddressString groupAddressStr(gs.groupAddress());
 

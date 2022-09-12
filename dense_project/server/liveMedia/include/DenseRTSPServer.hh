@@ -47,8 +47,8 @@ class ManifestRTPSink;
 #define TRANSPORT_PACKETS_PER_NETWORK_PACKET 7
 
 ///// DENSE RTSP SERVER /////
-class RTSPDenseClientConnection; // Forward
-class RTSPDenseClientSession;    // Forward
+class DenseRTSPClientConnection; // Forward
+class DenseRTSPClientSession;    // Forward
 class DenseSession;              // Forward
 class DenseRTSPServer : public RTSPServer
 {
@@ -157,7 +157,7 @@ public:
     ManifestRTPSink *fVideoSink;                   // RTP VideoSink
     RTCPInstance *fRTCP;                           // RTCP Instance
     PassiveServerMediaSubsession *fPassiveSession; // Passive Server Media Subsession
-    DenseServerMediaSession *fServerMediaSession;       // Server Media Session
+    DenseServerMediaSession *fServerMediaSession;  // Server Media Session
     CheckSource *fFileSource;                      // File Source
     MPEG2TransportStreamFramer *fVideoSource;      // Video Source
     DenseRTSPServer *fDenseServer;                 // Dense Server

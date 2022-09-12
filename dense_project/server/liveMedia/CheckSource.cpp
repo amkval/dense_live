@@ -31,6 +31,7 @@ CheckSource *CheckSource::createNew(
   {
     return NULL;
   }
+  env << "FILE* OpenInputFile1: " << fileName.c_str() << "\n";
 
   CheckSource *checkSource = new CheckSource(
       env,
@@ -54,6 +55,7 @@ CheckSource *CheckSource::createNew(
   {
     return NULL;
   }
+  env << "FILE* OpenInputFile2: " << newPath.c_str() << "\n";
 
   checkSource->fFid = newFid;
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
@@ -249,6 +251,7 @@ int CheckSource::manageManifest()
       fprintf(stderr, "In the CheckSource::manageManifest(): Could not open file!\n");
       exit(1);
     }
+    fprintf(stderr, "FILE* OpenInputFile 3: %s\n",  newPath.c_str());
     fFid = newFid;
     fFileSize = GetFileSize(newPath.c_str(), newFid);
     fReadSoFar = 0;

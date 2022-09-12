@@ -30,8 +30,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <iostream>
 
-char eventLoopWatchVariable = 0;
 // TODO: Keep these variables in some kind of object / state management?
+char eventLoopWatchVariable = 0;
 static unsigned denseRTSPClientCount = 0; // Only used for cleanup
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1     // By default, print verbose output from each "DenseRTSPClient"
 
