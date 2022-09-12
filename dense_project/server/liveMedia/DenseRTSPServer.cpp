@@ -1,5 +1,3 @@
-// TODO: additional information
-
 #include "RTSPCommon.hh"
 #include "GroupsockHelper.hh"
 #include "Base64.hh"
