@@ -8,6 +8,7 @@ DensePassiveServerMediaSubsession::~DensePassiveServerMediaSubsession()
 {
 }
 
+// Note: Is this used?
 void DensePassiveServerMediaSubsession::getInstances(Port &serverRTPPort, Port &serverRTCPPort)
 {
   Groupsock &gs = fRTPSink.groupsockBeingUsed();
@@ -32,9 +33,8 @@ Groupsock DensePassiveServerMediaSubsession::gs()
   return fRTPSink.groupsockBeingUsed();
 }
 
+// Note: Is this used?
 Groupsock DensePassiveServerMediaSubsession::RTCPgs()
 {
   return *(fRTCPInstance->RTCPgs());
 }
-
-// Note: sdpLines is also modified, but does it actually do anything (differently?)?

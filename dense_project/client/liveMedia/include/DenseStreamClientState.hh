@@ -16,13 +16,7 @@ public:
   virtual ~DenseStreamClientState();
 
 public:
-  //MediaSubsessionIterator *fIter; // Note: Replaced by vector.
   DenseMediaSession *fDenseMediaSession;
-  // DenseMediaSubsession *fDenseMediaSubsession; // Note: Replaced by vector.
-  // TaskToken fStreamTimerTask; // Note: Not used outside caPLAY, and caPLAY was not used.
-  // double fDuration; // Note: ^
-  // int fSubsessionCount; // Note: Not used.
-  // DenseMediaSubsession *fLinkSubSession; // Note: Not used.
 };
 
 #endif // _DENSE_STREAM_CLIENT_STATE_HH

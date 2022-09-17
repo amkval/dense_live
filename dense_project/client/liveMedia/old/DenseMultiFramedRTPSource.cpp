@@ -146,7 +146,7 @@ void DenseMultiFramedRTPSource::doStopGettingFrames()
 void DenseMultiFramedRTPSource::doGetNextFrame()
 {
   UsageEnvironment &env = envir();
-  env << "TEMP: DenseMultiFramedRTPSource::doGetNextFrame()\n";
+  //env << "####:\t\tDenseMultiFramedRTPSource::doGetNextFrame()\n";
 
   if (!fAreDoingNetworkReads)
   {
@@ -162,14 +162,14 @@ void DenseMultiFramedRTPSource::doGetNextFrame()
   fFrameSize = 0; // for now
   fNeedDelivery = True;
   doGetNextFrame1();
-  env << "<<<<: DenseMultiFramedRTPSource::doGetNextFrame()\n";
+  //env << "<<<<:\t\tDenseMultiFramedRTPSource::doGetNextFrame()\n";
 }
 
 // This function has been heavily modified for dense use.
 void DenseMultiFramedRTPSource::doGetNextFrame1()
 {
   UsageEnvironment &env = envir();
-  env << "TEMP: DenseMultiFramedRTPSource::doGetNextFrame1()\n";
+  //env << "####:\t\tDenseMultiFramedRTPSource::doGetNextFrame1()\n";
 
   while (fNeedDelivery)
   {
@@ -233,7 +233,6 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     // <Dense Content>
     if (packetLossPrecededThis)
     {
-      // fMediaSession->fPacketLoss = True; Note: not used.
       fMediaSession->fLevelDrops++;
       fMediaSession->fTotalDrops++;
     }
@@ -276,7 +275,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       else
       {
         env << "Something is wrong in outside of manageQualityLevels()\n";
-        exit(0);
+        exit(EXIT_FAILURE);
       }
       fMediaSession->fPacketChunk = nextPacket->chunk();
       // FramedSource::setSourceAndSeq(htons(ourSocket->port().num()), fCurPacketRTPSeqNum);
@@ -300,7 +299,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
     else
     {
       env << "Something is wrong in outside of manageQualityLevels() 78\n";
-      exit(0);
+      exit(EXIT_FAILURE);
     }
 
     // </Dense Content>
@@ -340,6 +339,7 @@ void DenseMultiFramedRTPSource::doGetNextFrame1()
       fNeedDelivery = True;
     }
   }
+  //env << "<<<<:\t\tDenseMultiFramedRTPSource::doGetNextFrame1()\n";
 }
 
 // <Dense Content>
@@ -363,17 +363,17 @@ void DenseMultiFramedRTPSource::printQLF(DenseBufferedPacket *packet)
 
   envir() << "\tManageQualityLevels:\n"
           << "\tIn PACKET:\n"
-          << "\tid: %u" << htons(ourSocket->port().num()) << "\n"
-          << "\tLevel: %d" << ourSubSession->fLevel << "\n"
-          << "\tseqNo: %u" << packet->rtpSeqNo() << "\n"
-          << "\tpacketChunk: %u" << packet->chunk() << "\n"
+          << "\tid: " << htons(ourSocket->port().num()) << "\n"
+          << "\tLevel: " << ourSubSession->fLevel << "\n"
+          << "\tseqNo: " << packet->rtpSeqNo() << "\n"
+          << "\tpacketChunk: " << packet->chunk() << "\n"
           << "\tIn SESSION:\n"
-          << "\tSourcenowChunk %u" << parent->fRTPChunk << "\n"
-          << "\tMain level %d" << parent->fCurrentLevel << "\n"
-          << "\tInControl: %s" << (inCntrl ? "True" : "False") << "\n"
-          << "\tNextInControl: %s" << (nextInCntrl ? "True" : "False") << "\n"
-          << "\tLEVEL LOSS: %d" << parent->fLevelDrops << "\n"
-          << "\tTOTAL LOSS: %d" << parent->fTotalDrops << "\n";
+          << "\tSourcenowChunk " << parent->fRTPChunk << "\n"
+          << "\tMain level " << parent->fCurrentLevel << "\n"
+          << "\tInControl: " << (inCntrl ? "True" : "False") << "\n"
+          << "\tNextInControl: " << (nextInCntrl ? "True" : "False") << "\n"
+          << "\tLEVEL LOSS: " << parent->fLevelDrops << "\n"
+          << "\tTOTAL LOSS: " << parent->fTotalDrops << "\n";
 }
 
 int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)
@@ -490,7 +490,7 @@ void DenseMultiFramedRTPSource::finish()
   env << "The level after finish: " << fMediaSession->fCurrentLevel << "\n";
 }
 
-// Note: This could be made to suport an arbitrary amount of levels.
+// Note: This could be made to support an arbitrary amount of levels.
 Boolean DenseMultiFramedRTPSource::startDown()
 {
   UsageEnvironment &env = envir();
@@ -982,11 +982,6 @@ DenseReorderingPacketBuffer ::DenseReorderingPacketBuffer(DenseBufferedPacketFac
   fPacketFactory = (packetFactory == NULL)
                        ? (new DenseBufferedPacketFactory)
                        : packetFactory;
-
-  // <Dense Section> Note: Not used.
-  // bufferSize = 0;
-  // bufferPackets = 0;
-  // </Dense Section>
 }
 
 DenseReorderingPacketBuffer::~DenseReorderingPacketBuffer()

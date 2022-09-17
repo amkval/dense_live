@@ -1,7 +1,5 @@
 #include "include/DenseStreamClientState.hh"
 
-// NOTE: What is this? Can it be removed?
-
 DenseStreamClientState::DenseStreamClientState() : fDenseMediaSession(NULL)
 {
 }

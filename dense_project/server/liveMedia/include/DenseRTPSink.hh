@@ -68,6 +68,7 @@ public:
   // the current 'wall clock' time.
 
   // <Dense Section>
+  // Note: Are these used anywhere?
   u_int32_t getBase() const { return fTimestampBase; }
   u_int32_t getFirstTimeStamp() const { return fFirstTimeStamp; }
   unsigned char getFreq() const { return fTimestampBase; }
@@ -133,7 +134,8 @@ protected:
   u_int32_t fCurrentTimestamp;
   u_int16_t fSeqNo;
 
-  // <Dense Section> TODO: Is this initialized properly? It is read, this may be a probelm.
+  // <Dense Section> TODO: Is this initialized properly? It is read, this may be a problem.
+  // Note: Not used?
   u_int32_t fFirstTimeStamp;
   // <Dense Section>
 

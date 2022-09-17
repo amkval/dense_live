@@ -68,6 +68,7 @@ DenseRTPSink::DenseRTPSink(
   resetPresentationTimes();
 
   // <Dense Section>
+  // Note: What happens if we don't change this? Can we do it elsewhere?
   fSeqNo = 0; //(u_int16_t)our_random(); // Only change in the whole file.
   // </Dense Section>
 

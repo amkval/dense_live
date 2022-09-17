@@ -109,6 +109,7 @@ unsigned DenseMultiFramedRTPSink::frameSpecificHeaderSize() const
   // default implementation: Assume no frame-specific header:
 
   // <Dense section> The only change in the whole file ...
+  // Note: And it is virtual, so the change does not really have to be here.
   return 4;
   // </Dense Secion>
 }

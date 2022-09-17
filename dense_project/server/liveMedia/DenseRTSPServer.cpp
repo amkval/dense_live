@@ -87,7 +87,7 @@ DenseRTSPServer::~DenseRTSPServer()
   cleanup();
 }
 
-void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
+void DenseRTSPServer::getQualityLevelSDP(std::string &linePointer)
 {
   const char *line;
 
@@ -105,7 +105,7 @@ void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
 
     if (subTeller != 1)
     {
-      fprintf(stderr, "Something went wrong, there are more than one subsession on this serversession on this DenseSession"); // What ever that means.
+      fprintf(stderr, "Something went wrong, there are more than one subsession on this server session on this DenseSession"); // Whatever that means.
       exit(0);
     }
 
@@ -116,7 +116,7 @@ void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
     }
 
     line = subsession->sdpLines();
-    linepointer.append(line);
+    linePointer.append(line);
     if (line != NULL)
     {
       fprintf(stderr, "Her har vi en line fra en subsession: %s\n", line);
@@ -128,7 +128,7 @@ void DenseRTSPServer::getQualityLevelSDP(std::string &linepointer)
     closeSessionPointer = (DenseSession *)commonDenseTable->Lookup((const char *)(std::to_string(++teller))[0]);
   }
 
-  fprintf(stderr, "outside of the while loop in getQualityLevelsSDP and have assembled:\n%s\n", linepointer.c_str());
+  fprintf(stderr, "outside of the while loop in getQualityLevelsSDP and have assembled:\n%s\n", linePointer.c_str());
 }
 
 void DenseRTSPServer::make(int level)
@@ -338,7 +338,7 @@ void DenseRTSPServer::makeNextTuple()
       htons(fStartPort) + 10,
       NULL,
       65U,
-      False, // Note: Replaced NULL with False
+      False,
       fLevels,
       fPath,
       std::to_string(fFPS),
@@ -347,7 +347,6 @@ void DenseRTSPServer::makeNextTuple()
   fNextServer = rtspServer;
 
   fprintf(stderr, "makeNextTuple() startPort: %d\n", fStartPort);
-  //sleep(2); // TODO: Remove?
 }
 
 ///// DenseSession /////

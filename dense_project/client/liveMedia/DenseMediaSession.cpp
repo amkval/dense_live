@@ -8,7 +8,7 @@ DenseMediaSession *DenseMediaSession::createNew(
   DenseMediaSession *denseMediaSession = new DenseMediaSession(env);
   if (denseMediaSession == NULL)
   {
-    env << "Failed to create new MediaSession\n";
+    env << "Failed to create new DenseMediaSession\n";
     exit(EXIT_FAILURE);
   }
 
@@ -30,10 +30,10 @@ DenseMediaSession::DenseMediaSession(UsageEnvironment &env)
       fLookAside(new unsigned char[2000000]), // TODO: centralize buffer size!
       fChunk(0), fPacketChunk(0), fRTPChunk(65535)
 {
-  fOut = fopen("mainStream", "wbr");
+  fOut = fopen("result.mp4", "wbr");
   if (fOut == NULL)
   {
-    env << "Failed to open file 'mainStream' in DenseMediaSession \n";
+    env << "Failed to open file 'result.mp4' in DenseMediaSession \n";
     exit(EXIT_FAILURE);
   }
 }
@@ -81,18 +81,18 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       continue;
   }
 
-  // GØTE
+  // Dense Modification
   int level = 0;
-  // GØTE ^
+  // Dense Modification ^
 
   while (sdpLine != NULL)
   {
     // We have a "m=" line, representing a new subsession:
 
-    // Dense mod
+    // Dense Modification
     // Note: Fix!
     DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this, this);
-    // Dense mod ^
+    // Dense Modification ^
 
     if (subsession == NULL)
     {
@@ -100,7 +100,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       return False;
     }
 
-    // Gøte
+    // Dense Modification
     if (level == 0)
     {
       subsession->fInit = 1;
@@ -111,7 +111,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     }
     subsession->fLevel = level++; // TODO: this should be in a constructor!
     
-    // Gøte ^
+    // Dense Modification ^
 
     // Parse the line as "m=<medium_name> <client_portNum> RTP/AVP <fmt>"
     // or "m=<medium_name> <client_portNum>/<num_ports> RTP/AVP <fmt>"
@@ -120,11 +120,6 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     char const *protocolName = NULL;
     unsigned payloadFormat;
 
-    // GØTE
-    char *addressName = strDupSize(sdpLine);
-    int port;
-    // GØTE
-
     if ((sscanf(sdpLine, "m=%s %hu RTP/AVP %u",
                 mediumName, &subsession->fClientPortNum, &payloadFormat) == 3 ||
          sscanf(sdpLine, "m=%s %hu/%*u RTP/AVP %u",
@@ -132,30 +127,6 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
         payloadFormat <= 127)
     {
       protocolName = "RTP";
-
-      // GØTE, TODO: Yes, but it is not used? what, why, how, keep?
-      sscanf(sdpLine, "m=data %d RTP/AVP 96\nc=IN IP4 %s", &port, addressName);
-      /*
-      if (fLevelAddr == NULL)
-      {
-        fLevelAddr = strdup(addressName);
-        int length = strlen(fLevelAddr);
-        fLevelAddr[length - 4] = '\0';
-      }
-      else if (fLevelAddr1 == NULL)
-      {
-        fLevelAddr1 = strdup(addressName);
-        int length = strlen(fLevelAddr1);
-        fLevelAddr1[length - 4] = '\0';
-      }
-      else if (fLevelAddr2 == NULL)
-      {
-        fLevelAddr2 = strdup(addressName);
-        int length = strlen(fLevelAddr2);
-        fLevelAddr2[length - 4] = '\0';
-      }
-      */
-      // GØTE ^
     }
     else if ((sscanf(sdpLine, "m=%s %hu UDP %u",
                      mediumName, &subsession->fClientPortNum, &payloadFormat) == 3 ||
@@ -188,10 +159,6 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       delete[] mediumName;
       delete subsession;
 
-      // GØTE
-      delete[] addressName;
-      // GØTE ^
-
       // Skip the following SDP lines, up until the next "m=":
       while (1)
       {
@@ -214,12 +181,14 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     }
     else
     {
-      ((DenseMediaSubsession *)fSubsessionsTail)->fDenseNext = subsession; // TODO: Tidy up.
+      ((DenseMediaSubsession *)fSubsessionsTail)->fDenseNext = subsession;
       fSubsessionsTail = subsession;
     }
-    // Dense
+    // Dense Modification
+    // This enables the use of a subsession vector, meaning we can disregard all the old next pointers.
+    // Note: The old pointers may be removed as we don't need them anymore!
     fDenseMediaSubsessions.push_back(subsession);
-    // Dense ^
+    // Dense Modification ^
 
     subsession->serverPortNum = subsession->fClientPortNum; // by default
 
@@ -231,10 +200,11 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     subsession->fProtocolName = strDup(protocolName);
     subsession->fRTPPayloadFormat = payloadFormat;
 
-    // GØTE
-    std::string densename = "fileSink.txt"; // TODO: What kind of file is this supposed to be?
-    subsession->sink = DenseFileSink::createNew(envir(), densename.c_str(), this);
-    // GØTE ^
+    // Dense Modifications
+    // TODO: Why do we have two+ sinks?
+    std::string denseName = "fileSink.txt";
+    subsession->sink = DenseFileSink::createNew(envir(), denseName.c_str(), this);
+    // Dense Modifications ^
 
     // Process the following SDP lines, up until the next "m=":
     while (1)

@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-////// DenseMediaSession implementation /////
+////// DenseMediaSession Implementation /////
 class DenseMediaSession : public MediaSession
 {
 public:
@@ -23,11 +23,6 @@ public:
 protected:
   DenseMediaSession(UsageEnvironment &env);
   virtual ~DenseMediaSession();
-
-public:
-  // Note: Not used anymore.
-  //MediaSubsession *getSubHead() { return fSubsessionsHead; }
-  //MediaSubsession *getSubTail() { return fSubsessionsTail; }
 
 protected:
   Boolean initializeWithSDP(char const *sdpDescription);
@@ -38,9 +33,9 @@ public:
   char *fxmisc;
 
   // Subsession variables:
-  std::vector<DenseMediaSubsession *> fDenseMediaSubsessions;
-  DenseMediaSubsession *fInControl; // Current subsession in control of the stream.
-  DenseMediaSubsession *fDenseNext; // Targeted subsession after level move. TODO: Make sure that this works!
+  std::vector<DenseMediaSubsession *> fDenseMediaSubsessions; // Vector containing all our subsessions.
+  DenseMediaSubsession *fInControl;                           // Current subsession in control of the stream.
+  DenseMediaSubsession *fDenseNext;                           // Targeted subsession after level move.
 
   // Session variables
   Boolean fFinishLookAside;      // If we need to transfer from look aside to file before ...
@@ -55,7 +50,7 @@ public:
   int fWritten;                  // Bytes written to fOut.
   unsigned char *fLookAside;     // The look aside buffer.
   unsigned short fChunk;         // Current chunk number.
-  unsigned short fPacketChunk;   // Chunk number of the most resent chunk.
+  unsigned short fPacketChunk;   // Chunk number of the most recent chunk.
   unsigned short fRTPChunk;      // TODO:?
 };
 

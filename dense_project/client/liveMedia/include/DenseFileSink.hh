@@ -17,10 +17,13 @@ class DenseMediaSession; // Forward
 #include "MultiFramedRTPSource.hh"
 #endif
 
-// Note: not needed?
-//#include <cmath>
-//#include <string>
-//#include <cassert>
+#ifndef _DENSE_PRINTS_HH
+#include "DensePrints.hh"
+#endif
+
+#ifndef _DENSE_RTP_SOURCE_HH
+#include "DenseRTPSource.hh"
+#endif
 
 class DenseFileSink : public FileSink
 {

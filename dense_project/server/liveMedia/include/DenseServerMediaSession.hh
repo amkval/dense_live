@@ -40,8 +40,7 @@ public:
   Boolean addSubsession(ServerMediaSubsession *subsession);
 
 public:
-  // TODO: These are moved from private to public... is this needed?
-  // and how do we deal with it?
+  // Note: These were moved from private to public, but they might not be needed anymore since we have the vector!
   ServerMediaSubsession *fSubsessionsHead;
   ServerMediaSubsession *fSubsessionsTail;
 

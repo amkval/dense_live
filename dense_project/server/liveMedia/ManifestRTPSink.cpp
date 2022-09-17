@@ -345,6 +345,7 @@ void ManifestRTPSink::sendPacketIfNecessary()
   {
     // Send the packet:
     // TEST_LOSS
+    // Note: It this loss?
     if (fPacketCount % 5000000000000 != 0)
     {
       if (!fRTPInterface.sendPacket(fOutBuf->packet(), fOutBuf->curPacketSize()))

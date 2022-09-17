@@ -229,6 +229,7 @@ int CheckSource::manageManifest()
     newPath.erase(newPath.length() - 1);                          // TODO: Make better solution
 
     FILE *newFid = OpenInputFile(envir(), newPath.c_str());
+    fprintf(stderr, "Path before open 3: %s\n", newPath.c_str());
     if (newFid == NULL)
     {
       fprintf(stderr, "In the CheckSource::manageManifest(): Could not open file!\n");

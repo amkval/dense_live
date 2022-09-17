@@ -1,4 +1,4 @@
-// This is an attempt copy the original file and include the modifications. while potentially removing some essessive stuff.
+// This is an attempt copy the original file and include the modifications. while potentially removing some excessive stuff.
 
 /**********
 This library is free software; you can redistribute it and/or modify it under
@@ -113,8 +113,6 @@ private:
   class DenseReorderingPacketBuffer *fReorderingBuffer;
 
   // <Dense Section>
-  class DenseReorderingPacketBuffer *QLBuffer; // Note: Not used?
-
   // Moved from RTPSource ˇ
 public:
   Boolean fThisIsMoving;

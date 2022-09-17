@@ -11,7 +11,7 @@ DenseRTSPClient *DenseRTSPClient::createNew(
 {
   env << "DenseRTSPClient::createNew():\n"
       << "\trtspURL: " << rtspURL << "\n"
-      << "\tverbositylevel: " << verbosityLevel << "\n"
+      << "\tverbosityLevel: " << verbosityLevel << "\n"
       << "\tapplicationName: " << applicationName << "\n";
 
   return new DenseRTSPClient(
