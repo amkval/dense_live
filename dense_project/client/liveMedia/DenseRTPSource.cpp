@@ -80,7 +80,7 @@ Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &r
   resultSpecialHeaderSize = 0; // fOffset;
 
   // Can we use the incoming packet?
-  env << "We are here in the fancy function\n";
+  //env << "We are here in the fancy function\n";
   int use = manageQualityLevels(packet);
 
   //env << "DenseRTPSource::processSpecialHeader():\n";
@@ -133,10 +133,10 @@ int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
   UsageEnvironment &env = envir();
   DenseMediaSubsession *ourSubSession = denseMediaSubsession();
   
-  env << "We are here in the other function\n";
+  //env << "We are here in the other function\n";
 
-  env << "ManageQualityLevels:\n"
-      << "chunk(): " << chunk(packet) << "\n";
+  //env << "ManageQualityLevels:\n"
+  //    << "chunk(): " << chunk(packet) << "\n";
 
   if (chunk(packet) % 50 == 0)
   {
@@ -399,13 +399,15 @@ Boolean DenseRTPSource::joinTwo()
 }
 
 // Extract chunk number from packet
-// TODO: Extracts the wrong value!
 int chunk(BufferedPacket *packet)
 {
-  unsigned extHdr = ntohl(*(u_int32_t *)(packet->data()));
+  unsigned char *data = packet->data();
 
-  //fwrite(&extHdr, 8, 1, stdout);
-  uint32_t temp = extHdr >> 16;
-  fprintf(stdout, "temp: %d\n", temp);
+  // TODO: Make sure that this works in all cases
+  data = data - 8;
+  unsigned extHdr = ntohl(*(u_int32_t *)(data));
+
+  //uint32_t temp = extHdr >> 16;
+  //fprintf(stdout, "temp: %d\n", temp);
   return (extHdr) >> 16;
 }
