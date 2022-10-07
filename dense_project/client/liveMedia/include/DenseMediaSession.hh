@@ -39,11 +39,11 @@ public:
 
   // Session variables
   Boolean fFinishLookAside;      // If we need to transfer from look aside to file before ...
-  Boolean fPacketLoss;           // Note: Not read, only written.
+  //Boolean fPacketLoss;         // Note: Not read, only written.
   Boolean fPutInLookAsideBuffer; // If a chunk is to be put in the look aside buffer.
-  FILE *fOut;                    // The main output stream. better name?
+  FILE *fOut;                    // The main output stream.
   int fCurrentLevel;             // The current quality level
-  int fLastOffset;               // Size of the last write to fOut?
+  int fLastOffset;               // 
   int fLevelDrops;               // Times the quality level has dropped since last level change.
   int fLookAsideSize;            // Bytes currently stored in the look aside buffer.
   int fTotalDrops;               // Total packet drops.
@@ -51,7 +51,7 @@ public:
   unsigned char *fLookAside;     // The look aside buffer.
   unsigned short fChunk;         // Current chunk number.
   unsigned short fPacketChunk;   // Chunk number of the most recent chunk.
-  unsigned short fRTPChunk;      // TODO:?
+  unsigned short fRTPChunk;      // 
 };
 
 #endif // _DENSE_MEDIA_SESSION_HH

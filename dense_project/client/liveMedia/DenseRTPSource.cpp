@@ -1,6 +1,6 @@
 #include "include/DenseRTPSource.hh"
 
-// Forward
+// Forward TODO: Move to header
 int chunk(BufferedPacket *packet);
 
 DenseRTPSource *DenseRTPSource::createNew(
@@ -24,8 +24,8 @@ DenseRTPSource::DenseRTPSource(
     char const *mimeTypeString,
     unsigned offset, Boolean doNormalMBitRule)
     : SimpleRTPSource(
-          env, RTPgs,
-          rtpPayloadFormat, rtpTimestampFrequency, mimeTypeString, offset, doNormalMBitRule)
+          env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency,
+          mimeTypeString, offset, doNormalMBitRule)
 {
 }
 
@@ -40,10 +40,9 @@ DenseRTPSource::~DenseRTPSource()
 Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &resultSpecialHeaderSize)
 {
   UsageEnvironment &env = envir();
-  //env << "DenseRTPSource::processSpecialHeader():\n";
 
   // Detect packet loss:
-  Boolean fUseMBitForFrameEnd = False; // Note: Remove
+  //Boolean fUseMBitForFrameEnd = False;
   Boolean packetLossPrecededThis = False;
   if (packet->isFirstPacket())
   {
@@ -51,18 +50,11 @@ Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &r
   }
 
   Boolean timeThresholdHasBeenExceeded;
-  unsigned int thresholdTime = 10000; //Note: Bad hardcoded part
-  if (thresholdTime == 0)
-  {
-    timeThresholdHasBeenExceeded = True;
-  }
-  else
-  {
-    struct timeval timeNow;
-    gettimeofday(&timeNow, NULL);
-    unsigned uSecondsSinceReceived = (timeNow.tv_sec - packet->timeReceived().tv_sec) * 1000000 + (timeNow.tv_usec - packet->timeReceived().tv_usec);
-    timeThresholdHasBeenExceeded = uSecondsSinceReceived > thresholdTime;
-  }
+  unsigned int thresholdTime = 10000;
+  struct timeval timeNow;
+  gettimeofday(&timeNow, NULL);
+  unsigned uSecondsSinceReceived = (timeNow.tv_sec - packet->timeReceived().tv_sec) * 1000000 + (timeNow.tv_usec - packet->timeReceived().tv_usec);
+  timeThresholdHasBeenExceeded = uSecondsSinceReceived > thresholdTime;
 
   if (timeThresholdHasBeenExceeded)
   {
@@ -76,16 +68,13 @@ Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &r
   }
 
   // The things the function is actually supposed to do:
-  fCurrentPacketCompletesFrame = !fUseMBitForFrameEnd || packet->rtpMarkerBit();
+  fCurrentPacketCompletesFrame = True; //! fUseMBitForFrameEnd || packet->rtpMarkerBit();
   resultSpecialHeaderSize = 0; // fOffset;
 
   // Can we use the incoming packet?
-  //env << "We are here in the fancy function\n";
   int use = manageQualityLevels(packet);
 
-  //env << "DenseRTPSource::processSpecialHeader():\n";
-
-  // Note: The packet will be dropped by the caller if use us 2.
+  // Note: The packet will be dropped by the caller if use is 2.
   if (use == 0 || use == 1)
   {
     return True;
@@ -112,32 +101,32 @@ void DenseRTPSource::printQLF(BufferedPacket *packet)
   {
     nextInCntrl = True;
   }
-
+  /*
   envir() << "\tManageQualityLevels:\n"
           << "\tIn PACKET:\n"
           << "\tid: " << htons(ourSocket->port().num()) << "\n"
-          << "\tLevel: " << ourSubSession->fLevel << "\n"
-          << "\tseqNo: " << packet->rtpSeqNo() << "\n"
+          << "\tfLevel: " << ourSubSession->fLevel << "\n"
+          << "\trtpSeqNo: " << packet->rtpSeqNo() << "\n"
           << "\tpacketChunk: " << chunk(packet) << "\n"
           << "\tIn SESSION:\n"
-          << "\tSourcenowChunk " << parent->fRTPChunk << "\n"
-          << "\tMain level " << parent->fCurrentLevel << "\n"
+          << "\tfRTPChunk " << parent->fRTPChunk << "\n"
+          << "\tfCurrentLevel " << parent->fCurrentLevel << "\n"
           << "\tInControl: " << (inCntrl ? "True" : "False") << "\n"
           << "\tNextInControl: " << (nextInCntrl ? "True" : "False") << "\n"
-          << "\tLEVEL LOSS: " << parent->fLevelDrops << "\n"
-          << "\tTOTAL LOSS: " << parent->fTotalDrops << "\n";
+          << "\tfLevelDrops: " << parent->fLevelDrops << "\n"
+          << "\tfTotalDrops: " << parent->fTotalDrops << "\n";
+        */
 }
 
 int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
 {
   UsageEnvironment &env = envir();
   DenseMediaSubsession *ourSubSession = denseMediaSubsession();
-  
-  //env << "We are here in the other function\n";
 
   //env << "ManageQualityLevels:\n"
   //    << "chunk(): " << chunk(packet) << "\n";
 
+  // Print QLF every 50 packets
   if (chunk(packet) % 50 == 0)
   {
     printQLF(packet);
@@ -167,7 +156,7 @@ int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
       if (fJustMoved)
       {
         fJustMoved = False;
-        env << "This one JUST MOVED, give it a minute!\n";
+        env << "Just entered level: " << fDenseMediaSession->fCurrentLevel << "\n";
         printQLF(packet);
         fDenseMediaSession->fRTPChunk = chunk(packet);
         return 0;

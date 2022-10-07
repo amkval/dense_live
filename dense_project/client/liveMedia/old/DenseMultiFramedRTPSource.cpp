@@ -360,7 +360,7 @@ void DenseMultiFramedRTPSource::printQLF(DenseBufferedPacket *packet)
   {
     nextInCntrl = True;
   }
-
+  /*
   envir() << "\tManageQualityLevels:\n"
           << "\tIn PACKET:\n"
           << "\tid: " << htons(ourSocket->port().num()) << "\n"
@@ -374,6 +374,7 @@ void DenseMultiFramedRTPSource::printQLF(DenseBufferedPacket *packet)
           << "\tNextInControl: " << (nextInCntrl ? "True" : "False") << "\n"
           << "\tLEVEL LOSS: " << parent->fLevelDrops << "\n"
           << "\tTOTAL LOSS: " << parent->fTotalDrops << "\n";
+  */
 }
 
 int DenseMultiFramedRTPSource::manageQualityLevels(DenseBufferedPacket *packet)

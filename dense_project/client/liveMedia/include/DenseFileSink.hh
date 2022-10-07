@@ -25,6 +25,8 @@ class DenseMediaSession; // Forward
 #include "DenseRTPSource.hh"
 #endif
 
+#define LOOKASIDE_BUFFER_SIZE 2000000
+
 class DenseFileSink : public FileSink
 {
 public:

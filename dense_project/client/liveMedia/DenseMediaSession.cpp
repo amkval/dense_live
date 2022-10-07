@@ -24,12 +24,13 @@ DenseMediaSession *DenseMediaSession::createNew(
 
 DenseMediaSession::DenseMediaSession(UsageEnvironment &env)
     : MediaSession(env), fInControl(NULL), fDenseNext(NULL),
-      fFinishLookAside(False), fPacketLoss(False), fPutInLookAsideBuffer(False),
+      fFinishLookAside(False), /* fPacketLoss(False), */ fPutInLookAsideBuffer(False),
       fOut(NULL), fCurrentLevel(0), fLastOffset(0), fLevelDrops(0), fLookAsideSize(0),
       fTotalDrops(0), fWritten(0),
-      fLookAside(new unsigned char[2000000]), // TODO: centralize buffer size!
+      fLookAside(new unsigned char[LOOKASIDE_BUFFER_SIZE]),
       fChunk(0), fPacketChunk(0), fRTPChunk(65535)
 {
+  // Open output file
   fOut = fopen("result.mp4", "wbr");
   if (fOut == NULL)
   {
@@ -45,7 +46,9 @@ DenseMediaSession::~DenseMediaSession()
 Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
 {
   if (sdpDescription == NULL)
+  {
     return False;
+  }
 
   char const *sdpLine = sdpDescription;
   char const *nextSDPLine;
@@ -90,7 +93,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     // We have a "m=" line, representing a new subsession:
 
     // Dense Modification
-    // Note: Fix!
+    // Note: Fix this to not pass this twice!
     DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this, this);
     // Dense Modification ^
 
@@ -101,6 +104,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     }
 
     // Dense Modification
+    // TODO: This could be done in the constructor?
     if (level == 0)
     {
       subsession->fInit = 1;
@@ -109,8 +113,8 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     {
       subsession->fInit = 0;
     }
-    subsession->fLevel = level++; // TODO: this should be in a constructor!
-    
+    subsession->fLevel = level++; 
+
     // Dense Modification ^
 
     // Parse the line as "m=<medium_name> <client_portNum> RTP/AVP <fmt>"
@@ -201,7 +205,7 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     subsession->fRTPPayloadFormat = payloadFormat;
 
     // Dense Modifications
-    // TODO: Why do we have two+ sinks?
+    // TODO: Why do we have two sinks?
     std::string denseName = "fileSink.txt";
     subsession->sink = DenseFileSink::createNew(envir(), denseName.c_str(), this);
     // Dense Modifications ^
@@ -294,8 +298,8 @@ Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
     sscanf(sdpLine, "o=- %d %d IN IP4 %s", &s1, &s2, buffer);
     oLine = True;
   }
-  delete[] buffer;
 
+  delete[] buffer;
   return oLine;
 }
 
@@ -306,7 +310,7 @@ Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
  * @return Boolean True if found, False if not.
  */
 Boolean DenseMediaSession::parseSDPLine_xmisc(char const *sdpLine)
-{ // a=x-qt-text-misc:yo yo mood // TODO: change to something more sensible
+{ // a=x-qt-text-misc:yo yo mood Note: Change tag to something more appropriate?
   // Check for "a=x-qt-text-misc" line
   Boolean parseSuccess = False;
   char *buffer = strDupSize(sdpLine); // ensures we have enough space
@@ -317,7 +321,7 @@ Boolean DenseMediaSession::parseSDPLine_xmisc(char const *sdpLine)
     fxmisc = strDup(buffer);
     parseSuccess = True;
   }
-  delete[] buffer;
 
+  delete[] buffer;
   return parseSuccess;
 }

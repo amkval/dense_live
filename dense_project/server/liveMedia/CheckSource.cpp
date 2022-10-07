@@ -9,7 +9,7 @@ CheckSource *CheckSource::createNew(
     unsigned preferredFrameSize,
     unsigned playTimePerFrame)
 {
-  FILE *fid = OpenInputFile(env, (const char *)fileName.c_str()); // TODO: is this cast legal?
+  FILE *fid = OpenInputFile(env, (const char *)fileName.c_str()); // TODO: is this cast legal? It works.
   if (fid == NULL)
   {
     return NULL;
@@ -33,6 +33,7 @@ CheckSource *CheckSource::createNew(
       << "\tcheckSource->fPath: " << checkSource->fPath.c_str() << "\n"
       << "\tcheckSource->fChunks[0]: " << checkSource->fChunks[0] << "\n";
 
+  // Note: Open the first file? Is this duplicate of manage manifest?
   FILE *newFid = OpenInputFile(env, newPath.c_str());
   if (newFid == NULL)
   {
@@ -236,6 +237,10 @@ int CheckSource::manageManifest()
       exit(1);
     }
     fprintf(stderr, "FILE* OpenInputFile 3: %s\n",  newPath.c_str());
+    
+    // Close old file before we replace it with the new one.
+    //CloseInputFile(fFid);
+    
     fFid = newFid;
     fFileSize = GetFileSize(newPath.c_str(), newFid);
     fReadSoFar = 0;
