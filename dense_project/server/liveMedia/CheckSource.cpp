@@ -3,48 +3,57 @@
 
 #include "include/CheckSource.hh"
 
+// Dummy for gdb. just call this function anywhere!
+void dummy()
+{
+  /* I am dummy */
+}
+
 CheckSource *CheckSource::createNew(
     UsageEnvironment &env,
     std::string fileName,
     unsigned preferredFrameSize,
     unsigned playTimePerFrame)
 {
-  FILE *fid = OpenInputFile(env, (const char *)fileName.c_str()); // TODO: is this cast legal? It works.
-  if (fid == NULL)
-  {
-    return NULL;
-  }
-  env << "FILE* OpenInputFile1: " << fileName.c_str() << "\n";
+  // Open Manifest File
+  FILE *fid = OpenInputFile(env, (const char *)fileName.c_str());
+  if (fid == NULL) return NULL;
+  env << "\n\nOpen Manifest File:\t" << fileName.c_str() << "\n";
+
+  char chunks[1000][100] = {0};
+  int chunkCount = stripChunks(&chunks, fid);
+  std::string path = stripPath(fileName);
+
+  // Find path to first file
+  std::string newPath = path + (char *)chunks[0];
+  // Remove newline character
+  newPath.erase(newPath.length() - 1);
+
+  env << "\tnewPath: " << newPath.c_str() << "\n"
+      << "\tpath: " << path.c_str() << "\n"
+      << "\tchunks[0]: " << chunks[0] << "\n";
+
+  // Close Manifest File
+  CloseInputFile(fid);
+
+  // Open first video file in preparation to start
+  FILE *newFid = OpenInputFile(env, newPath.c_str());
+  if (newFid == NULL) return NULL;
+  env << "Open first input file:\t" << newPath.c_str() << "\n";
+
 
   CheckSource *checkSource = new CheckSource(
       env,
-      fid,
+      newFid,
       preferredFrameSize,
       playTimePerFrame);
 
-  // TODO: use setters?
-  checkSource->fChunkCount = checkSource->stripChunks();
-  checkSource->fPath = checkSource->stripPath(fileName);
-
-  std::string newPath = checkSource->fPath + (char *)checkSource->fChunks[0]; // TODO: do we need cast?
-  newPath.erase(newPath.length() - 1);                                        // TODO: Make better solution
-
-  env << "\tnewPath: " << newPath.c_str() << "\n"
-      << "\tcheckSource->fPath: " << checkSource->fPath.c_str() << "\n"
-      << "\tcheckSource->fChunks[0]: " << checkSource->fChunks[0] << "\n";
-
-  // Note: Open the first file? Is this duplicate of manage manifest?
-  FILE *newFid = OpenInputFile(env, newPath.c_str());
-  if (newFid == NULL)
-  {
-    return NULL;
-  }
-  env << "FILE* OpenInputFile2: " << newPath.c_str() << "\n";
-
-  checkSource->fFid = newFid;
+  // Set values, note: consider using setters!
+  checkSource->fChunkCount = chunkCount;
+  checkSource->fPath = path;
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
+  std::copy(&chunks[0][0], &chunks[0][0] + 100 * 1000, &checkSource->fChunks[0][0]);
 
-  // TODO: potentially print uint64_t
   env << "\tcheckSource->fFileSize: " << std::to_string(checkSource->fFileSize).c_str() << "\n";
 
   return checkSource;
@@ -81,39 +90,30 @@ CheckSource::~CheckSource()
   CloseInputFile(fFid);
 }
 
-int CheckSource::stripChunks()
+int CheckSource::stripChunks(char (*chunks)[1000][100], FILE *fid)
 {
   fprintf(stderr, "CheckSource::stripChunks()\n");
 
   int chunkCount = 0;
-  int lineCount = 0;
+  //int lineCount = 0;
   size_t size = 0;
-  char *line = NULL; // TODO: is there any point in NULL initializing?
+  char *line = NULL; // Note: Should this be an empty string instead?
 
-  getline(&line, &size, fFid);
-
-  // fprintf(stderr, "line: %s", line);
-
+  getline(&line, &size, fid);
   if (line[0] != '#')
   {
     fprintf(stderr, "This line does not adhere to manifest format!");
     exit(0);
   }
 
-  while (getline(&line, &size, fFid) > 0)
+  while (getline(&line, &size, fid) > 0)
   {
-    // fprintf(stderr, "line: %s", line);
     if (line[0] != '#')
     {
-      memcpy(fChunks[chunkCount], line, strlen(line) + 1);
+      memcpy((*chunks)[chunkCount], line, strlen(line) + 1);
       chunkCount++;
-      // fprintf(stderr, "added: chunkCount: %d, lineCount: %d, line: %s\n", chunkCount, lineCount, line);
     }
-    else
-    {
-      // fprintf(stderr, "skipped: lineCount: %d, line: %s\n", lineCount + 1, line);
-    }
-    lineCount++;
+    //lineCount++;
   }
 
   return chunkCount;
@@ -139,6 +139,7 @@ void CheckSource::doGetNextFrame()
 #else
   if (!fHaveStartedReading)
   {
+    //fprintf(stdout, "Add Background Read Handling!\n");
     // Await readable data from the file:
     envir().taskScheduler().turnOnBackgroundReadHandling(
         fileno(fFid),
@@ -150,17 +151,20 @@ void CheckSource::doGetNextFrame()
 
 void CheckSource::fileReadableHandler(CheckSource *source, int /*mask*/)
 {
+  //fprintf(stdout, "File read handler has been called!\n");
   if (!source->isCurrentlyAwaitingData())
   {
     source->doStopGettingFrames();
     return;
   }
   source->doReadFromFile();
+  //fprintf(stderr, "After fileReadableHandler\n");
 }
 
 void CheckSource::doReadFromFile()
 {
-  [[maybe_unused]] u_int32_t firstTimestamp; // TODO: not used!
+  //fprintf(stdout, "Do read from file has been called!\n");
+  //[[maybe_unused]] u_int32_t firstTimestamp; // note: not used!
   // Try to read as many bytes as will fit in the buffer provided (or "fPreferredFrameSize" if less)
   if (fLimitNumBytesToStream && fNumBytesToStream < (u_int64_t)fMaxSize)
   {
@@ -173,10 +177,13 @@ void CheckSource::doReadFromFile()
 
   fFrameSize = fread(fTo, 1, fMaxSize, fFid);
   fReadSoFar += fFrameSize;
-  [[maybe_unused]] int readSize = manageManifest(); // TODO: Not used
+  
+  // Change input file if needed
+  manageManifest();
 
-  if (fFrameSize == 0)
+  if (fFrameSize <= 0)
   {
+    fprintf(stdout, "We are exiting!\n");
     handleClosure();
     return;
   }
@@ -216,34 +223,45 @@ void CheckSource::doReadFromFile()
 #else
   // Because the file read was done from the event loop, we can call the
   // 'after getting' function directly, without risk of infinite recursion:
+  //fprintf(stderr, "After doReadFromFile()\n");
   FramedSource::afterGetting(this);
 #endif
 }
 
 int CheckSource::manageManifest()
 {
+  //fprintf(stdout, "Manage manifest has been called!\n");
+  //fprintf(stdout, "fFileSize %d, fReadSoFar %d, fCurrentChunk %d, fChunkCount %d\n", fFileSize, fReadSoFar, fCurrentChunk, fChunkCount);
+
   if ((fFileSize - fReadSoFar) == 0 && fCurrentChunk <= fChunkCount)
   {
     fCurrentChunk++;
 
     std::string newPath = fPath + (char *)fChunks[fCurrentChunk]; // TODO: do we need cast?
     newPath.erase(newPath.length() - 1);                          // TODO: Make better solution
+    
+    fprintf(stderr, "Read: %s\n", newPath.c_str());
 
     FILE *newFid = OpenInputFile(envir(), newPath.c_str());
-    fprintf(stderr, "Path before open 3: %s\n", newPath.c_str());
     if (newFid == NULL)
     {
       fprintf(stderr, "In the CheckSource::manageManifest(): Could not open file!\n");
       exit(1);
     }
-    fprintf(stderr, "FILE* OpenInputFile 3: %s\n",  newPath.c_str());
+    //fprintf(stderr, "FILE* OpenInputFile 3: %s\n",  newPath.c_str());
     
-    // Close old file before we replace it with the new one.
-    //CloseInputFile(fFid);
-    
+    // Replace old file with new.
+    FILE *oldFid = fFid;
     fFid = newFid;
+#ifndef READ_FROM_FILES_SYNCHRONOUSLY
+    envir().taskScheduler().turnOffBackgroundReadHandling(fileno(oldFid));
+#endif
+    CloseInputFile(oldFid);
+
     fFileSize = GetFileSize(newPath.c_str(), newFid);
     fReadSoFar = 0;
+    fHaveStartedReading = False;
+    //fprintf(stderr, "Finish ManageManifest\n");
   }
 
   return 1;

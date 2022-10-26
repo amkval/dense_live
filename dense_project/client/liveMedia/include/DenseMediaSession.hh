@@ -38,15 +38,15 @@ public:
   DenseMediaSubsession *fDenseNext;                           // Targeted subsession after level move.
 
   // Session variables
-  Boolean fFinishLookAside;      // If we need to transfer from look aside to file before ...
+  Boolean fFinishLookAside;      // If we are to write from look aside buffer.
   //Boolean fPacketLoss;         // Note: Not read, only written.
   Boolean fPutInLookAsideBuffer; // If a chunk is to be put in the look aside buffer.
   FILE *fOut;                    // The main output stream.
   int fCurrentLevel;             // The current quality level
   int fLastOffset;               // 
-  int fLevelDrops;               // Times the quality level has dropped since last level change.
+  int fLevelDrops;               // Packet loss since last level change.
   int fLookAsideSize;            // Bytes currently stored in the look aside buffer.
-  int fTotalDrops;               // Total packet drops.
+  int fTotalDrops;               // Total packet loss.
   int fWritten;                  // Bytes written to fOut.
   unsigned char *fLookAside;     // The look aside buffer.
   unsigned short fChunk;         // Current chunk number.

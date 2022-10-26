@@ -344,7 +344,9 @@ void DenseRTSPServer::makeNextTuple()
       std::to_string(fFPS),
       newstream);
 
+  DenseRTSPServer *old = fNextServer;
   fNextServer = rtspServer;
+  delete old;
 
   fprintf(stderr, "makeNextTuple() startPort: %d\n", fStartPort);
 }

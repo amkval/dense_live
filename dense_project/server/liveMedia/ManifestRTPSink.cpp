@@ -114,12 +114,7 @@ void ManifestRTPSink::buildAndSendPacket(Boolean isFirstPacket)
   // (We can't fill this in until we start packing payload frames.)
   fTimestampPosition = fOutBuf->curPacketSize();
   fOutBuf->skipBytes(4); // leave a hole for the timestamp
-
   fOutBuf->enqueueWord(SSRC());
-  // fOutBuf->skipBytes(4);
-  // TODO: Make sure you didn't ruin anything now!!
-
-  // unsigned short chunkreftest = 9;
 
   // CHUNK:
   unsigned short chunkreftest = fCheckSource->getNowChunk();
@@ -134,10 +129,11 @@ void ManifestRTPSink::buildAndSendPacket(Boolean isFirstPacket)
     gettimeofday(&now, NULL);
 
     int diff = now.tv_sec - fOurServer->fStartTime.tv_sec;
-    //fprintf(stderr, "ManifestRTPSink buildandsendpacket\nBREAKTIME: %d \nDIFFTIME: %d\n%d\n%d\n\n", fOurServer->fFPS, diff, fOurServer->fStartTime.tv_sec, now.tv_sec);
-    if (diff >= fOurServer->fFPS)
+    
+    // Start a new session if fFPS time has passed.
+    // TODO: Remove false!
+    if (False && diff >= fOurServer->fFPS)
     {
-
       DenseRTSPServer *fOurS = (DenseRTSPServer *)fOurServer;
       fOurS->makeNextTuple();
     }
@@ -344,8 +340,7 @@ void ManifestRTPSink::sendPacketIfNecessary()
   if (fNumFramesUsedSoFar > 0)
   {
     // Send the packet:
-    // TEST_LOSS
-    // Note: It this loss?
+    // TEST_LOSS probability
     if (fPacketCount % 5000000000000 != 0)
     {
       if (!fRTPInterface.sendPacket(fOutBuf->packet(), fOutBuf->curPacketSize()))
@@ -357,9 +352,9 @@ void ManifestRTPSink::sendPacketIfNecessary()
     }
     else
     {
-      // fprintf(stderr, "\n     sendPacketIfNecessary() STOP LOSSTIME -> %u\n", fPacketCount);
-      // sleep(3);
-    } // simulate packet loss #####
+      //fprintf(stderr, "Packet loss test: %u\n", fPacketCount);
+      //sleep(3);
+    }
 
     ++fPacketCount;
 

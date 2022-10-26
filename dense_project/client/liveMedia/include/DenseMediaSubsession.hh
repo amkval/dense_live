@@ -37,13 +37,16 @@ public:
   // Note: Function overriden to spoof fControlPath for RTSPClient
   // This is done to avoid having to edit / copy the whole file.
   // This may break another call... and may break things. Better check it out!
+
+  // What is the point rally?
   char const *controlPath() const
   {
     std::string denseControlPath = fControlPath;
+    fprintf(stdout, "#### original path:%s\n", denseControlPath);
     int len = denseControlPath.size();
     std::string init = std::to_string(fInit);
     denseControlPath.replace(len - 2, 1, init);
-
+    fprintf(stdout, "#### new path:%s\n", denseControlPath);
     return denseControlPath.c_str();
   }
 
@@ -53,10 +56,10 @@ protected:
   Boolean denseCreateSourceObjects(int useSpecialRTPOffset); // TODO: ^
 
 public:
-  int fInit;                        // TODO: rename? What does it mean? Initial level? Does it serve several purposes? weird.
+  int fInit;                        // True = Initial level, False = not initial
   int fLevel;                       // Quality level of subsession
-  DenseMediaSession *fMediaSession; // Parent of subsession
-  DenseMediaSubsession *fDenseNext; // TODO: is this used? Can it be replaced by the vector? Possibly remove completely!
+  DenseMediaSession *fMediaSession; // Parent session
+  DenseMediaSubsession *fDenseNext; // Note: Not used by us.
 };
 
 #endif // _DENSE_MEDIA_SUBSESSION_HH

@@ -27,8 +27,8 @@ public:
   int getNowChunk() { return fCurrentChunk; } // TODO: rename to getter?
 
 protected:
-  int stripChunks();
-  std::string stripPath(std::string path);
+  static int stripChunks(char (*chunks)[1000][100], FILE *fid);
+  static std::string stripPath(std::string path);
 
   virtual void doGetNextFrame();
   static void fileReadableHandler(CheckSource *source, int mask);
@@ -38,7 +38,7 @@ protected:
 protected:
   u_int64_t fFileSize;
   uint64_t fReadSoFar;
-  char fChunks[1000][100] = {0}; // TODO: is this sensible?
+  char fChunks[1000][100] = {0};
   std::string fPath;
   int fCurrentChunk;
   int fChunkCount;

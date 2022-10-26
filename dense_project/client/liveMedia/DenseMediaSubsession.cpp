@@ -50,7 +50,7 @@ Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
     // if (fClientPortNum != 0 && (honorSDPPortChoice || IsMulticastAddress(tempAddr.s_addr)))
     {
       // The sockets' port numbers were specified for us.  Use these:
-      fprintf(stderr, "\n The sockets' port numbers were specified for us. Using: %hu\n", fClientPortNum);
+      fprintf(stderr, "The sockets' port numbers were specified for us. Using: %hu\n", fClientPortNum);
       Boolean const protocolIsRTP = strcmp(fProtocolName, "RTP") == 0;
       if (protocolIsRTP && !fMultiplexRTCPWithRTP)
       {

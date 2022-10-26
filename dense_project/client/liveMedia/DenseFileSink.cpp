@@ -116,23 +116,27 @@ void DenseFileSink::addData(
     unsigned dataSize,
     struct timeval presentationTime)
 {
-  FileSink::addData(data, dataSize, presentationTime);
+  //Note: This is just duplicate?
+  //FileSink::addData(data, dataSize, presentationTime);
 
   UsageEnvironment &env = envir();
 
   // Pull the start of the stream that we missed.
   if(fMediaSession->fWritten == 0){
-    env << "Have arrived at the first packet down at the sink and need to pull upto: " << fMediaSession->fPacketChunk << "\n";
+    env << "Pull beginning upto chunk: " << fMediaSession->fPacketChunk << "\n";
     pullBeginning(fMediaSession->fPacketChunk);
     return;
   }
 
+  // Do we need to buffer the data?
   if (fMediaSession->fPutInLookAsideBuffer)
   {
     // Move the bytes to Lookaside Buffer
+    /*
     env << "Put bytes in lookaside buffer:\n"
         << "\tfMediaSession->fPacketChunk: " << fMediaSession->fPacketChunk << "\n"
         << "\tfMediaSession->fLookAsideSize: " << fMediaSession->fLookAsideSize << "\n";
+    */
 
     memmove(fMediaSession->fLookAside + fMediaSession->fLookAsideSize, data, dataSize);
     fMediaSession->fLookAsideSize += dataSize;
@@ -146,12 +150,12 @@ void DenseFileSink::addData(
     }
 
     fMediaSession->fPutInLookAsideBuffer = False;
-
     return;
   }
 
+  // Pull patch if there is too much packet loss
   if (fMediaSession->fLevelDrops >= 3 && fWriteFromPacket)
-  { // This means that the RTPSource will start down next chunk over, but we pull it here bc too many drops
+  {
     pullPatch();
   }
 
@@ -172,7 +176,7 @@ void DenseFileSink::addData(
         << fMediaSession->fLastOffset << "\n";
   }
 
-  // Check if we need to transfer from lookaside to file first
+  // Check if we need to write from lookaside buffer first
   if (fMediaSession->fFinishLookAside)
   {
     finishFromLookAside();
@@ -192,10 +196,10 @@ void DenseFileSink::addData(
 void DenseFileSink::finishFromLookAside()
 {
   UsageEnvironment &env = envir();
-  env << "FileSink::finishFromLookAside()\n"
-      << "\tBytes int the lookAside buffer: "
+  env << "#### Write from lookaside buffer ####\n"
+      << "fLookAsideSize: "
       << fMediaSession->fLookAsideSize << "\n"
-      << "\tBytes in the outFile: "
+      << "fWritten: "
       << fMediaSession->fWritten << "\n";
 
   // Write from lookAside buffer to output file
@@ -206,12 +210,6 @@ void DenseFileSink::finishFromLookAside()
 
   // Lookaside is now empty
   fMediaSession->fLookAsideSize = 0;
-
-  env << "FileSink::finishFromLookAside()\n"
-      << "\tBytes int the lookAside buffer: "
-      << fMediaSession->fLookAsideSize << "\n"
-      << "\tBytes in the outFile: "
-      << fMediaSession->fWritten << "\n";
 }
 
 /**
@@ -220,8 +218,8 @@ void DenseFileSink::finishFromLookAside()
 void DenseFileSink::pullPatch()
 {
   UsageEnvironment &env = envir();
-  env << "addData PACKET LOSS PRECEEDED THIS\n"
-      << "\tfWritten: " << fMediaSession->fWritten << "\n";
+  env << "#### Pull Patch because of packet loss ####\n"
+      << "fWritten: " << fMediaSession->fWritten << "\n";
 
   long fileSize = pullChunk(fMediaSession->fChunk);
   fWriteFromPacket = False;
@@ -235,14 +233,11 @@ void DenseFileSink::pullPatch()
  */
 void DenseFileSink::pullBeginning(int chunkCount)
 {
-  long fileSize;
-
   for (int i = 0; i <= chunkCount; i++)
   {
-    fileSize = pullChunk(i);
+    long fileSize = pullChunk(i);
     fWriteFromPacket = False;
     fMediaSession->fWritten += fileSize;
-    // fMediaSession->fPacketLoss = False;
     fMediaSession->fChunk = i;
   }
 }
@@ -250,8 +245,7 @@ void DenseFileSink::pullBeginning(int chunkCount)
 /**
  * @brief Pull 'all' chunks from the server
  *
- * Note:  Used while testing
- *        Uses hard coded values
+ * Note: Used for testing purposes.
  */
 void DenseFileSink::pullAll()
 {
@@ -275,37 +269,45 @@ long DenseFileSink::pullChunk(unsigned short chunkId)
   UsageEnvironment &env = envir();
 
   // Compile pull command
-  std::string start = "wget ";                 // Command start
-  std::string serverAddress = "localhost";    // Server IP
-  std::string manStart = "/chunks/first";             // Quality Level
-  std::string chunk = std::to_string(chunkId); // Chunk ID
-  std::string manEnd = ".ts";                  // File extension
-  std::string reqEnd = " --header \"Host: denseserver.com\""; // Note: What is this for?
+  std::string start = "wget ";                  // Command start
+  std::string serverAddress = "localhost";      // Server IP
+  std::string manStart = "/chunks/first";       // Quality Level
+  std::string chunk = std::to_string(chunkId);  // Chunk ID
+  std::string manEnd = ".ts";                   // File extension
+  std::string reqEnd = " --header \"Host: denseserver.com\"";
   std::string path = start + serverAddress + manStart + chunk + manEnd + reqEnd;
 
+  // Compile file name
   std::string fileName = "first";
   fileName.append(chunk);
   fileName.append(manEnd);
 
-  env << "DenseFileSink::pullChunk(): path: " << path.c_str() << " and filename: " << fileName.c_str() << "\n";
+  env << "#### PullChunk ####\n";
+  env << "path: " << path.c_str() << "\nfilename: " << fileName.c_str() << "\n";
 
   // Execute Pull command
   system(path.c_str());
 
+  // Open patch file
   FILE *file = fopen(fileName.c_str(), "rb");
   fseek(file, 0, SEEK_END);
   long fileSize = ftell(file);
-  env << "fileSize: " << fileSize << " fOutfID: " << ftell(fMediaSession->fOut) << "\n";
+  env << "fileSize: " << fileSize << "\nfOutfID: " << ftell(fMediaSession->fOut) << "\n";
   fseek(file, 0, SEEK_SET);
 
+  // Read file to buffer
   char *buffer = new char[fileSize];
-
   fread(buffer, 1, fileSize, file);
+
+  // Write buffer to output file
   fseek(fMediaSession->fOut, 0, fMediaSession->fWritten);
   long written = fwrite(buffer, 1, fileSize, fMediaSession->fOut);
-  env << "written: " << written << " fOutfID: " << ftell(fMediaSession->fOut) << "\n";
+  env << "written: " << written << "\nfOutfID: " << ftell(fMediaSession->fOut) << "\n";
+  
+  // Cleanup
+  // Note: remove file too!
   fclose(file);
-
   delete[] buffer;
+
   return written;
 }
