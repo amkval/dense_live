@@ -9,19 +9,24 @@
 #include "DenseStreamClientState.hh"
 #endif
 
+// C++ imports
+#include <string>
+
+////// DenseRTSPClient //////
+
 class DenseRTSPClient : public RTSPClient
 {
 public:
   static DenseRTSPClient *createNew(
-      UsageEnvironment &env, char const *rtspURL,
+      UsageEnvironment &env, std::string rtspURL,
+      std::string applicationName,
       int verbosityLevel = 0,
-      char const *applicationName = NULL,
       portNumBits tunnelOverHTTPPortNum = 0);
 
 protected:
   DenseRTSPClient(
-      UsageEnvironment &env, char const *rtspURL,
-      int verbosityLevel, char const *applicationName,
+      UsageEnvironment &env, std::string rtspURL,
+      std::string applicationName, int verbosityLevel,
       portNumBits tunnelOverHTTPPortNum);
   // called only by createNew();
   virtual ~DenseRTSPClient();

@@ -152,7 +152,7 @@ void DenseRTSPServer::make(int level)
       NULL,
       "Session streamed by \"denseServer\"",
       False,
-      "a=x-qt-text-misc:yo yo mood\n"); // TODO: Change "yo yo mood" to something more appropriate
+      "a=x-qt-text-misc:dense\n");
   addServerMediaSession(sms);
 
   char *url = rtspURL(sms);

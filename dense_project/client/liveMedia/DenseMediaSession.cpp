@@ -1,5 +1,6 @@
 #include "include/DenseMediaSession.hh"
-#include "include/DenseFileSink.hh"
+
+////// DenseMediaSession /////
 
 DenseMediaSession *DenseMediaSession::createNew(
     UsageEnvironment &env,
@@ -8,11 +9,11 @@ DenseMediaSession *DenseMediaSession::createNew(
   DenseMediaSession *denseMediaSession = new DenseMediaSession(env);
   if (denseMediaSession == NULL)
   {
-    env << "Failed to create new DenseMediaSession\n";
+    env << "Failed to create new 'DenseMediaSession'\n";
     exit(EXIT_FAILURE);
   }
 
-  if (!denseMediaSession->initializeWithSDP(sdpDescription.c_str()))
+  if (!denseMediaSession->initializeWithSDP(sdpDescription))
   {
     env << "Failed to initialize DenseMediaSession with sdpDescription\n";
     delete denseMediaSession;
@@ -24,7 +25,7 @@ DenseMediaSession *DenseMediaSession::createNew(
 
 DenseMediaSession::DenseMediaSession(UsageEnvironment &env)
     : MediaSession(env), fInControl(NULL), fDenseNext(NULL),
-      fFinishLookAside(False), /* fPacketLoss(False), */ fPutInLookAsideBuffer(False),
+      fFinishLookAside(False), fPutInLookAsideBuffer(False),
       fOut(NULL), fCurrentLevel(0), fLastOffset(0), fLevelDrops(0), fLookAsideSize(0),
       fTotalDrops(0), fWritten(0),
       fLookAside(new unsigned char[LOOKASIDE_BUFFER_SIZE]),
@@ -43,14 +44,9 @@ DenseMediaSession::~DenseMediaSession()
 {
 }
 
-Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
+Boolean DenseMediaSession::initializeWithSDP(std::string sdpDescription)
 {
-  if (sdpDescription == NULL)
-  {
-    return False;
-  }
-
-  char const *sdpLine = sdpDescription;
+  char const *sdpLine = sdpDescription.c_str();
   char const *nextSDPLine;
 
   while (True)
@@ -92,30 +88,12 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
   {
     // We have a "m=" line, representing a new subsession:
 
-    // Dense Modification
-    // Note: Fix this to not pass this twice!
-    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this, this);
-    // Dense Modification ^
-
+    DenseMediaSubsession *subsession = DenseMediaSubsession::createNew(envir(), *this, level++);
     if (subsession == NULL)
     {
       envir().setResultMsg("Unable to create new DenseMediaSubsession");
       return False;
     }
-
-    // Dense Modification
-    // TODO: This could be done in the constructor?
-    if (level == 0)
-    {
-      subsession->fInit = 1;
-    }
-    else
-    {
-      subsession->fInit = 0;
-    }
-    subsession->fLevel = level++; 
-
-    // Dense Modification ^
 
     // Parse the line as "m=<medium_name> <client_portNum> RTP/AVP <fmt>"
     // or "m=<medium_name> <client_portNum>/<num_ports> RTP/AVP <fmt>"
@@ -178,21 +156,8 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
       continue;
     }
 
-    // Insert this subsession at the end of the list:
-    if (fSubsessionsTail == NULL)
-    {
-      fSubsessionsHead = fSubsessionsTail = subsession;
-    }
-    else
-    {
-      ((DenseMediaSubsession *)fSubsessionsTail)->fDenseNext = subsession;
-      fSubsessionsTail = subsession;
-    }
-    // Dense Modification
-    // This enables the use of a subsession vector, meaning we can disregard all the old next pointers.
-    // Note: The old pointers may be removed as we don't need them anymore!
+    // Add subsession to subsession vector
     fDenseMediaSubsessions.push_back(subsession);
-    // Dense Modification ^
 
     subsession->serverPortNum = subsession->fClientPortNum; // by default
 
@@ -248,7 +213,9 @@ Boolean DenseMediaSession::initializeWithSDP(char const *sdpDescription)
     }
 
     if (sdpLine != NULL)
+    {
       subsession->fSavedSDPLines[sdpLine - mStart] = '\0';
+    }
 
     // If we don't yet know the codec name, try looking it up from the
     // list of static payload types:
@@ -310,7 +277,7 @@ Boolean DenseMediaSession::parseSDPLine_o(char const *sdpLine)
  * @return Boolean True if found, False if not.
  */
 Boolean DenseMediaSession::parseSDPLine_xmisc(char const *sdpLine)
-{ // a=x-qt-text-misc:yo yo mood Note: Change tag to something more appropriate?
+{ // a=x-qt-text-misc:dense
   // Check for "a=x-qt-text-misc" line
   Boolean parseSuccess = False;
   char *buffer = strDupSize(sdpLine); // ensures we have enough space

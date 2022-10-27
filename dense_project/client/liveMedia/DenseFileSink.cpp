@@ -4,6 +4,7 @@
 
 #include <string>
 #include <iostream>
+#include <stdio.h>
 
 DenseFileSink *DenseFileSink::createNew(
     UsageEnvironment &env,
@@ -92,6 +93,7 @@ void DenseFileSink::afterGettingFrame(
     return;
   }
 
+  /*
   if (fPerFrameFileNameBuffer != NULL)
   {
     if (fOutFid != NULL)
@@ -100,12 +102,13 @@ void DenseFileSink::afterGettingFrame(
       fOutFid = NULL;
     }
   }
+  */
 
   continuePlaying();
 }
 
 /**
- * @brief TODO: Fill in this info
+ * @brief Adds received data to output file
  *
  * @param data
  * @param dataSize
@@ -116,28 +119,18 @@ void DenseFileSink::addData(
     unsigned dataSize,
     struct timeval presentationTime)
 {
-  //Note: This is just duplicate?
-  //FileSink::addData(data, dataSize, presentationTime);
-
   UsageEnvironment &env = envir();
 
   // Pull the start of the stream that we missed.
   if(fMediaSession->fWritten == 0){
-    env << "Pull beginning upto chunk: " << fMediaSession->fPacketChunk << "\n";
+    env << "Pulling chunks 0 to " << fMediaSession->fPacketChunk << "\n";
     pullBeginning(fMediaSession->fPacketChunk);
     return;
   }
 
-  // Do we need to buffer the data?
+  // If we need to write to lookaside
   if (fMediaSession->fPutInLookAsideBuffer)
   {
-    // Move the bytes to Lookaside Buffer
-    /*
-    env << "Put bytes in lookaside buffer:\n"
-        << "\tfMediaSession->fPacketChunk: " << fMediaSession->fPacketChunk << "\n"
-        << "\tfMediaSession->fLookAsideSize: " << fMediaSession->fLookAsideSize << "\n";
-    */
-
     memmove(fMediaSession->fLookAside + fMediaSession->fLookAsideSize, data, dataSize);
     fMediaSession->fLookAsideSize += dataSize;
 
@@ -146,6 +139,7 @@ void DenseFileSink::addData(
     {
       fwrite(fMediaSession->fLookAside, 1, fMediaSession->fLookAsideSize, fMediaSession->fOut);
       fclose(fOutFid);
+      env << "Lookaside buffer grew too large, quitting program!\n";
       exit(EXIT_FAILURE);
     }
 
@@ -159,7 +153,7 @@ void DenseFileSink::addData(
     pullPatch();
   }
 
-  // New chunk arrived at the FileSink and its not to be put in lookaside
+  // If a new chunk has arrived
   if (fMediaSession->fPacketChunk > fMediaSession->fChunk)
   {
     fWriteFromPacket = True;
@@ -176,7 +170,7 @@ void DenseFileSink::addData(
         << fMediaSession->fLastOffset << "\n";
   }
 
-  // Check if we need to write from lookaside buffer first
+  // If we need to write from lookaside buffer
   if (fMediaSession->fFinishLookAside)
   {
     finishFromLookAside();
@@ -222,8 +216,9 @@ void DenseFileSink::pullPatch()
       << "fWritten: " << fMediaSession->fWritten << "\n";
 
   long fileSize = pullChunk(fMediaSession->fChunk);
+  fMediaSession->fLastOffset += fileSize;
   fWriteFromPacket = False;
-  fMediaSession->fWritten = fMediaSession->fLastOffset + fileSize;
+  fMediaSession->fWritten = fMediaSession->fLastOffset;
 }
 
 /**
@@ -237,7 +232,8 @@ void DenseFileSink::pullBeginning(int chunkCount)
   {
     long fileSize = pullChunk(i);
     fWriteFromPacket = False;
-    fMediaSession->fWritten += fileSize;
+    fMediaSession->fLastOffset += fileSize;
+    fMediaSession->fWritten += fMediaSession->fLastOffset;
     fMediaSession->fChunk = i;
   }
 }
@@ -245,7 +241,6 @@ void DenseFileSink::pullBeginning(int chunkCount)
 /**
  * @brief Pull 'all' chunks from the server
  *
- * Note: Used for testing purposes.
  */
 void DenseFileSink::pullAll()
 {
@@ -260,7 +255,9 @@ void DenseFileSink::pullAll()
 
 /**
  * @brief Pull a specific chunk from the server and write to file.
- *
+ *  
+ * Note: There are better ways to do this without wget and extra files.
+ * 
  * @param chunkId ID of the chunk to be pulled.
  * @return long size of write to file.
  */
@@ -295,19 +292,19 @@ long DenseFileSink::pullChunk(unsigned short chunkId)
   env << "fileSize: " << fileSize << "\nfOutfID: " << ftell(fMediaSession->fOut) << "\n";
   fseek(file, 0, SEEK_SET);
 
-  // Read file to buffer
+  // Read from file to buffer
   char *buffer = new char[fileSize];
   fread(buffer, 1, fileSize, file);
 
   // Write buffer to output file
-  fseek(fMediaSession->fOut, 0, fMediaSession->fWritten);
+  fseek(fMediaSession->fOut, 0, fMediaSession->fLastOffset);
   long written = fwrite(buffer, 1, fileSize, fMediaSession->fOut);
   env << "written: " << written << "\nfOutfID: " << ftell(fMediaSession->fOut) << "\n";
   
   // Cleanup
-  // Note: remove file too!
   fclose(file);
   delete[] buffer;
+  remove(fileName.c_str());
 
   return written;
 }

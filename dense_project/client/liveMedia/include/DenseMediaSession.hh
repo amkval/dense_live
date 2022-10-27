@@ -11,10 +11,13 @@
 #include "DenseMediaSubsession.hh"
 #endif
 
+// C++ imports
 #include <string>
 #include <vector>
 
-////// DenseMediaSession Implementation /////
+class DenseMediaSubsession;
+
+////// DenseMediaSession Implementation //////
 class DenseMediaSession : public MediaSession
 {
 public:
@@ -25,7 +28,7 @@ protected:
   virtual ~DenseMediaSession();
 
 protected:
-  Boolean initializeWithSDP(char const *sdpDescription);
+  Boolean initializeWithSDP(std::string sdpDescription);
   Boolean parseSDPLine_o(char const *sdpLine);
   Boolean parseSDPLine_xmisc(char const *sdpLine);
 
@@ -39,19 +42,18 @@ public:
 
   // Session variables
   Boolean fFinishLookAside;      // If we are to write from look aside buffer.
-  //Boolean fPacketLoss;         // Note: Not read, only written.
   Boolean fPutInLookAsideBuffer; // If a chunk is to be put in the look aside buffer.
   FILE *fOut;                    // The main output stream.
-  int fCurrentLevel;             // The current quality level
+  int fCurrentLevel;             // Current Quality Level.
   int fLastOffset;               // 
   int fLevelDrops;               // Packet loss since last level change.
   int fLookAsideSize;            // Bytes currently stored in the look aside buffer.
   int fTotalDrops;               // Total packet loss.
   int fWritten;                  // Bytes written to fOut.
-  unsigned char *fLookAside;     // The look aside buffer.
+  unsigned char *fLookAside;     // Lookaside Buffer.
   unsigned short fChunk;         // Current chunk number.
-  unsigned short fPacketChunk;   // Chunk number of the most recent chunk.
-  unsigned short fRTPChunk;      // 
+  unsigned short fPacketChunk;   // Chunk number of the most recent received packet.
+  unsigned short fRTPChunk;      // Current chunk number.
 };
 
 #endif // _DENSE_MEDIA_SESSION_HH

@@ -6,14 +6,11 @@ MACROS = -DBSD=1  -DSOCKLEN_T=socklen_t -DHAVE_SOCKADDR_LEN=1 -DTIME_BASE=int
 
 CLIENT = client
 
-
 DFSINK = ../liveMedia/DenseFileSink
 DMSESSION = ../liveMedia/DenseMediaSession
 DMSUBSESSION = ../liveMedia/DenseMediaSubsession
-#DMFRSOURCE = ../liveMedia/DenseMultiFramedRTPSource
 DPRINTS = ../liveMedia/DensePrints
 DRTPSCLIENT = ../liveMedia/DenseRTSPClient
-#DSRTPSOURCE = ../liveMedia/DenseSimpleRTPSource
 DSCSTATE = ../liveMedia/DenseStreamClientState
 DRTPSOURCE = ../liveMedia/DenseRTPSource
 

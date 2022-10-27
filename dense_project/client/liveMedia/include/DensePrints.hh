@@ -6,13 +6,8 @@
 #include "UsageEnvironment.hh"
 #endif
 
-// Dense Imports
-#ifndef _DENSE_RTSP_CLIENT_HH
+#ifdef _DENSE_RTSP_CLIENT_HH
 #include "DenseRTSPClient.hh"
-#endif
-
-#ifndef _DENSE_MEDIA_SESSION_HH
-#include "DenseMediaSession.hh"
 #endif
 
 // Other Imports
@@ -21,10 +16,11 @@
 ////// Debug functions //////
 
 // A function that outputs a string that identifies each stream (for debugging output).
-UsageEnvironment &operator<<(UsageEnvironment &env, const DenseRTSPClient &denseRTSPClient);
+//UsageEnvironment &
+//operator<<(UsageEnvironment &env, const DenseRTSPClient &denseRTSPClient);
 
 // A function that outputs a string that identifies each subsession (for debugging output).
-UsageEnvironment &operator<<(UsageEnvironment &env, const MediaSubsession &subsession);
+//sageEnvironment &operator<<(UsageEnvironment &env, const MediaSubsession &subsession);
 
 // A function that outputs a string as a C string (for debugging output).
 UsageEnvironment &operator<<(UsageEnvironment &env, std::string string);

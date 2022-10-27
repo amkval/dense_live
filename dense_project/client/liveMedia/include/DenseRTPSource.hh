@@ -1,13 +1,23 @@
 #ifndef _DENSE_RTP_SOURCE_HH
 #define _DENSE_RTP_SOURCE_HH
 
+// Live Imports
 #ifndef _SIMPLE_RTP_SOURCE_HH
 #include "SimpleRTPSource.hh"
+#endif
+
+// Dense Imports
+#ifndef _DENSE_MEDIA_SUBSESSION_HH
+#include "DenseMediaSubsession.hh"
 #endif
 
 #ifndef _DENSE_MEDIA_SESSION_HH
 #include "DenseMediaSession.hh"
 #endif
+
+// Forward class declaration
+class DenseMediaSession;
+class DenseMediaSubsession;
 
 class DenseRTPSource : public SimpleRTPSource
 {
@@ -37,6 +47,7 @@ public:
 protected:
   virtual Boolean processSpecialHeader(BufferedPacket *packet, unsigned &resultSpecialHeaderSize);
   int manageQualityLevels(BufferedPacket *packet);
+  int chunk(BufferedPacket *packet);
   void finish();
   Boolean startDown();
   Boolean startUp();

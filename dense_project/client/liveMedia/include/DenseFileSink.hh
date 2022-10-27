@@ -1,8 +1,6 @@
 #ifndef _DENSE_FILE_SINK_HH
 #define _DENSE_FILE_SINK_HH
 
-class DenseMediaSession; // Forward
-
 // Live Imports
 #ifndef _FILE_SINK_HH
 #include "FileSink.hh"
@@ -13,17 +11,11 @@ class DenseMediaSession; // Forward
 #include "DenseMediaSession.hh"
 #endif
 
-#ifndef _MULTI_FRAMED_RTP_SOURCE_HH
-#include "MultiFramedRTPSource.hh"
-#endif
-
 #ifndef _DENSE_PRINTS_HH
 #include "DensePrints.hh"
 #endif
 
-#ifndef _DENSE_RTP_SOURCE_HH
-#include "DenseRTPSource.hh"
-#endif
+class DenseMediaSession; // Forward
 
 #define LOOKASIDE_BUFFER_SIZE 2000000
 

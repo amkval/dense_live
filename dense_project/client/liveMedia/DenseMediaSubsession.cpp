@@ -1,24 +1,22 @@
 #include "MPEG2TransportStreamFramer.hh"
 
-#include "include/DenseMediaSession.hh"
 #include "include/DenseMediaSubsession.hh"
-#include "include/DenseRTPSource.hh"
 
-// Note: both parent and mediaSession is overkill. how do we limit?
 ////// DenseMediaSubsession //////
+
 DenseMediaSubsession *DenseMediaSubsession::createNew(
     UsageEnvironment &env,
-    DenseMediaSession &parent,
-    DenseMediaSession *mediaSession)
+    DenseMediaSession &mediaSession,
+    int level)
 {
-  return new DenseMediaSubsession(env, parent, mediaSession);
+  return new DenseMediaSubsession(env, mediaSession, level);
 }
 
 DenseMediaSubsession::DenseMediaSubsession(
     UsageEnvironment &env,
-    DenseMediaSession &parent,
-    DenseMediaSession *mediaSession) : MediaSubsession(parent),
-                                       fLevel(0), fMediaSession(mediaSession)
+    DenseMediaSession &mediaSession,
+    int level) : MediaSubsession(mediaSession),
+                 fLevel(level), fMediaSession(mediaSession)
 {
 }
 
@@ -27,10 +25,13 @@ DenseMediaSubsession::~DenseMediaSubsession()
 }
 
 // Dense implementation of Initiate
-Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
+Boolean DenseMediaSubsession::denseInitiate()
 {
+  // If the subsession already has been initiated
   if (fReadSource != NULL)
-    return True; // has already been initiated
+  {
+    return True;
+  }
 
   do
   {
@@ -47,7 +48,6 @@ Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
     // This could get changed later, as a result of a RTSP "SETUP"
 
     if (fClientPortNum != 0)
-    // if (fClientPortNum != 0 && (honorSDPPortChoice || IsMulticastAddress(tempAddr.s_addr)))
     {
       // The sockets' port numbers were specified for us.  Use these:
       fprintf(stderr, "The sockets' port numbers were specified for us. Using: %hu\n", fClientPortNum);
@@ -68,25 +68,21 @@ Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
         fRTPSocket = new Groupsock(env(), tempAddr, fClientPortNum, 255);
 
         // <Dense Section>
-        // TODO: Make it more clear what is happening here.
-        // Better variable names etc.
-
-        if (!fInit)
+        if (fLevel != 0)
         {
-          // struct sockaddr_in sa;
           char buffer[INET_ADDRSTRLEN];
           inet_ntop(AF_INET, &tempAddr.s_addr, buffer, sizeof(buffer));
-          printf("address:%s and socketnum: %d\n", buffer, fRTPSocket->socketNum());
-          socketLeaveGroup(env(), fRTPSocket->socketNum(), tempAddr.s_addr);
+          env() << "address: " << buffer << "\n"
+                << "socket: " << fRTPSocket->socketNum() << "\n";
 
+          // Leaving group as this subsession is not in control
+          socketLeaveGroup(env(), fRTPSocket->socketNum(), tempAddr.s_addr);
           env() << "This is " << htons(fRTPSocket->port().num()) << " and we are leaving the group again because we don't flow from start\n";
         }
         else
         {
+          fMediaSession.fInControl = this;
           env() << "This is " << htons(fRTPSocket->port().num()) << " and we flow from start\n";
-
-          // This subsession is in control.
-          fMediaSession->fInControl = this;
         }
         // </Dense Section>
       }
@@ -231,7 +227,7 @@ Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
     }
 
     // Create "fRTPSource" and "fReadSource":
-    if (!denseCreateSourceObjects(useSpecialRTPoffset))
+    if (!denseCreateSourceObjects())
       break;
 
     if (fReadSource == NULL)
@@ -271,7 +267,7 @@ Boolean DenseMediaSubsession::denseInitiate(int useSpecialRTPoffset)
 }
 
 // This replaces a more general function found in MediaSubsession
-Boolean DenseMediaSubsession::denseCreateSourceObjects(int useSpecialRTPoffset)
+Boolean DenseMediaSubsession::denseCreateSourceObjects()
 {
   env() << "DenseMediaSubsession::denseCreateSourceObjects()\n";
   if (strcmp(fProtocolName, "UDP") != 0)
@@ -283,13 +279,13 @@ Boolean DenseMediaSubsession::denseCreateSourceObjects(int useSpecialRTPoffset)
           fRTPTimestampFrequency, "video/MP2T",
           0, False);
 
-      if (fMediaSession == NULL)
+      if (&fMediaSession == NULL)
       {
         env() << "WARNING: fMediaSession == NULL!\n";
         return False;
       }
 
-      ((DenseRTPSource *)fRTPSource)->fDenseMediaSession = fMediaSession;
+      ((DenseRTPSource *)fRTPSource)->fDenseMediaSession = &fMediaSession;
       ((DenseRTPSource *)fRTPSource)->setDenseMediaSubsession(this);
 
       fReadSource = MPEG2TransportStreamFramer::createNew(env(), fRTPSource);

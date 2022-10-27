@@ -1,7 +1,6 @@
 #include "include/DenseRTPSource.hh"
 
-// Forward TODO: Move to header
-int chunk(BufferedPacket *packet);
+////// DenseRTPSource //////
 
 DenseRTPSource *DenseRTPSource::createNew(
     UsageEnvironment &env,
@@ -39,7 +38,7 @@ DenseRTPSource::~DenseRTPSource()
  */
 Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &resultSpecialHeaderSize)
 {
-  UsageEnvironment &env = envir();
+  //UsageEnvironment &env = envir();
 
   // Detect packet loss:
   Boolean packetLossPrecededThis = False;
@@ -68,18 +67,11 @@ Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &r
 
   // The things the function is actually supposed to do:
   fCurrentPacketCompletesFrame = True;
-  resultSpecialHeaderSize = 0; // fOffset;
+  resultSpecialHeaderSize = 0;
 
   // Can we use the incoming packet?
-  int use = manageQualityLevels(packet);
-
-  // Tell caller to drop packet if use is two.
-  if (use == 2)
-  {
-    return False;
-  }
-  fDenseMediaSession->fPacketChunk = chunk(packet);
-  return True;
+  // It will be discarded otherwise
+  return manageQualityLevels(packet);
 }
 
 void DenseRTPSource::printQLF(BufferedPacket *packet)
@@ -98,9 +90,8 @@ void DenseRTPSource::printQLF(BufferedPacket *packet)
   {
     nextInCntrl = True;
   }
-  /*
+
   envir() << "\tManageQualityLevels:\n"
-          << "\tIn PACKET:\n"
           << "\tid: " << htons(ourSocket->port().num()) << "\n"
           << "\tfLevel: " << ourSubSession->fLevel << "\n"
           << "\trtpSeqNo: " << packet->rtpSeqNo() << "\n"
@@ -112,106 +103,95 @@ void DenseRTPSource::printQLF(BufferedPacket *packet)
           << "\tNextInControl: " << (nextInCntrl ? "True" : "False") << "\n"
           << "\tfLevelDrops: " << parent->fLevelDrops << "\n"
           << "\tfTotalDrops: " << parent->fTotalDrops << "\n";
-        */
 }
 
+/*
+  There are three possible cases:
+    0. The packet should be used -> it's from the current level and the correct chunk
+    1. The packet should be saved -> it's from the next level, but its ahead
+    2. The packet should be dropped -> it's not from the current level or ahead
+  There are two possible return values:
+    True: The packet can be used.
+    False: The packet is to be discarded.
+*/
 int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
 {
   UsageEnvironment &env = envir();
   DenseMediaSubsession *ourSubSession = denseMediaSubsession();
 
-  //env << "ManageQualityLevels:\n"
-  //    << "chunk(): " << chunk(packet) << "\n";
-
-  // Print QLF every 50 packets
-  if (chunk(packet) % 50 == 0)
-  {
-    printQLF(packet);
-  }
-
+  // If this is the first packet we have received
   if (fDenseMediaSession->fRTPChunk == 65535)
   {
     fDenseMediaSession->fRTPChunk = chunk(packet);
-    env << "This is the first packet, setting fOurSession->RTPChunk to " << fDenseMediaSession->fRTPChunk << "\n";
   }
 
-  /*
-  There are three possible return values, the return values represent:
-  0. The packet is usable -> its from the current level and the correct chunk
-  1. The packet should be saved -> its from the next level, but its ahead
-  2. The packet should be dropped -> its not from the current level or ahead
-  */
-
-  // If we are in control
-  if (fDenseMediaSession->fInControl == ourSubSession)
-  { 
-    // If it is the expected packet
-    if (chunk(packet) == fDenseMediaSession->fRTPChunk)
-    {
-      return 0;
-    }
-    // If the packet is ahead
-    else if (chunk(packet) > fDenseMediaSession->fRTPChunk)
-    { 
-      // If we just moved into this level
-      if (fJustMoved)
-      {
-        fJustMoved = False;
-        env << "Entered Level: " << fDenseMediaSession->fCurrentLevel << "\n";
-        printQLF(packet);
-        fDenseMediaSession->fRTPChunk = chunk(packet);
-        return 0;
-      }
-
-      // Start moving level if we are not currently moving
-      
-      if (!fThisIsMoving)
-      {
-        // Move down a level if we have had enough packet loss
-        if (fDenseMediaSession->fLevelDrops >= 3)
-        {
-          if (!startDown())
-          {
-            env << "Quitting after starDown\n";
-            exit(EXIT_FAILURE);
-          }
-        }
-        else // Move up a level
-        {
-          if (!startUp())
-          {
-            env << "Quitting after startUp()\n";
-            exit(EXIT_FAILURE);
-          }
-        }
-        printQLF(packet);
-        fDenseMediaSession->fRTPChunk = chunk(packet);
-        return 0;
-      }
-      else
-      { // Finish moving
-        finish();
-        env << "Have finished (packet follows)\n";
-        printQLF(packet);
-      }
-      
-    }
-    else
-    { // This is wrong
-      env << "Something is wrong in manageQualityLevels() the packet chunk is behind\n";
-      exit(EXIT_FAILURE);
-    }
-  }
-  else
-  { // We are not in control
+  // If we are not in control
+  if (fDenseMediaSession->fInControl != ourSubSession)
+  {
+    // If the packet is ahead we should save it for later use.
     if (chunk(packet) > fDenseMediaSession->fRTPChunk)
-    { // the packet should be saved for when we are in control
+    {
       fDenseMediaSession->fPutInLookAsideBuffer = True;
       fDenseMediaSession->fPacketChunk = chunk(packet);
-      return 1;
+      return True;
     }
+
+    return False;
   }
-  return 2;
+
+  // Finish moving if we have started already
+  if (fThisIsMoving)
+  {
+    finish();
+    return False;
+  }
+
+  // If the packet is behind, exit
+  if (chunk(packet) < fDenseMediaSession->fRTPChunk)
+  {
+    env << "Something is wrong in manageQualityLevels() the packet chunk is behind\n";
+    exit(EXIT_FAILURE);
+  }
+
+  // Set PacketChunk to current chunk ref.
+  fDenseMediaSession->fPacketChunk = chunk(packet);
+
+  // If the packet belongs to the current chunk
+  if (fDenseMediaSession->fPacketChunk == fDenseMediaSession->fRTPChunk)
+  {
+    return True;
+  }
+
+  // Set the current RTPChunk to the new PacketChunk
+  fDenseMediaSession->fRTPChunk = fDenseMediaSession->fPacketChunk;
+
+  // If this level just gained control
+  if (fJustMoved)
+  {
+    fJustMoved = False;
+    return True;
+  }
+
+  // If we have lost too many packets, move down a level
+  //TODO: Uncomment.
+  
+  if (fDenseMediaSession->fLevelDrops >= 3)
+  {
+    if (!startDown())
+    {
+      env << "Quitting after starDown\n";
+      exit(EXIT_FAILURE);
+    }
+    return True;
+  }
+  
+  // Move up a level
+  if (!startUp())
+  {
+    env << "Quitting after startUp()\n";
+    exit(EXIT_FAILURE);
+  }
+  return True;
 }
 
 void DenseRTPSource::finish()
@@ -232,7 +212,7 @@ void DenseRTPSource::finish()
   DenseRTPSource *denseRTPSource = dynamic_cast<DenseRTPSource *>(fDenseMediaSession->fInControl->rtpSource());
   if (!denseRTPSource)
   {
-    env << "RTPSource is not a DenseRTPSource!";
+    env << "RTPSource is not a 'DenseRTPSource'!";
     exit(EXIT_FAILURE);
   }
 
@@ -393,7 +373,7 @@ Boolean DenseRTPSource::joinTwo()
 
 // Extract chunk number from packet
 // Note: This is not an optimal solution and may break if the rtp header changes.
-int chunk(BufferedPacket *packet)
+int DenseRTPSource::chunk(BufferedPacket *packet)
 {
   unsigned char *data = packet->data();
   data = data - 8;
