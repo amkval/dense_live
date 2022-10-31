@@ -100,22 +100,22 @@ void continueAfterDESCRIBE(RTSPClient *rtspClient, int resultCode, char *resultS
 
     if (resultCode != 0)
     {
-      env /*<< *denseRTSPClient*/ << "Failed to get a SDP description: " << resultString << "\n";
+      env << "Failed to get a SDP description: " << resultString << "\n";
       break;
     }
-    env /*<< *denseRTSPClient*/ << "Got a SDP description:\n"
+    env << "Got a SDP description:\n"
                                 << resultString << "\n";
 
     scs.fDenseMediaSession = DenseMediaSession::createNew(env, resultString);
     if (scs.fDenseMediaSession == NULL)
     {
-      env /*<< *denseRTSPClient*/ << "Failed to create a DenseMediaSession from SDP description: " << env.getResultMsg() << "\n";
+      env << "Failed to create a DenseMediaSession from SDP description: " << env.getResultMsg() << "\n";
       break;
     }
 
     if (scs.fDenseMediaSession->fDenseMediaSubsessions.empty())
     {
-      env /*<< *denseRTSPClient*/ << "This session has no media subsessions (i.e., no \"m=\" lines)\n";
+      env << "This session has no media subsessions (i.e., no \"m=\" lines)\n";
       break;
     }
 
@@ -136,10 +136,10 @@ void setupSubsessions(DenseRTSPClient *denseRTSPClient)
   {
     if (!denseMediaSubsession->denseInitiate())
     {
-      env /*<< *denseRTSPClient*/ << "Failed to initiate the \"" /*<< *denseMediaSubsession*/ << "\" subsession: " << env.getResultMsg() << "\n";
+      env << "Failed to initiate the \"" /*<< *denseMediaSubsession*/ << "\" subsession: " << env.getResultMsg() << "\n";
       shutdownStream(denseRTSPClient);
     }
-    env /*<< *denseRTSPClient*/ << "Initiated the \"" /*<< *denseMediaSubsession*/ << "\" subsession (";
+    env << "Initiated the \"" /*<< *denseMediaSubsession*/ << "\" subsession (";
     
     // Note: We don't really need both. Unmuxed is what we use.
     if (denseMediaSubsession->rtcpIsMuxed())
@@ -163,25 +163,25 @@ void setupSubsessions(DenseRTSPClient *denseRTSPClient)
   {
     if (denseMediaSubsession->readSource() == NULL)
     {
-      env /*<< *denseMediaSubsession*/ << " has no 'readSource'!\n";
+      env << "DenseMediaSubsession has no 'readSource'!\n";
       shutdownStream(denseRTSPClient);
     }
     if (denseMediaSubsession->rtpSource() == NULL)
     {
-      env /*<< *denseMediaSubsession*/ << " has no 'rtpSource'!\n";
+      env << "DenseMediaSubsession has no 'rtpSource'!\n";
       shutdownStream(denseRTSPClient);
     }
     if (denseMediaSubsession->rtcpInstance() == NULL)
     {
-      env /*<< *denseMediaSubsession*/ << " has no 'rtcpInstance'!\n";
+      env << "DenseMediaSubsession has no 'rtcpInstance'!\n";
       shutdownStream(denseRTSPClient);
     }
 
     // Start playing the subsessions.
-    env /*<< *denseMediaSubsession*/ << " Starting to play\n";
+    env << "DenseMediaSubsession Starting to play\n";
     DenseFileSink *sink = dynamic_cast<DenseFileSink *>(denseMediaSubsession->sink);
     sink->startPlaying(*(denseMediaSubsession->readSource()), subsessionAfterPlaying, denseMediaSubsession);
-    env  << "DenseFileSink has started playing!\n";
+    env << "DenseFileSink has started playing!\n";
 
     // Also set a handler to be called if a RTCP "BYE" arrives for this subsession:
     if (denseMediaSubsession->rtcpInstance() != NULL)
@@ -189,7 +189,7 @@ void setupSubsessions(DenseRTSPClient *denseRTSPClient)
       denseMediaSubsession->rtcpInstance()->setByeWithReasonHandler(subsessionByeHandler, denseMediaSubsession);
     }
 
-    env << "\n\n#### Setup Finished ####\n";
+    env << "\n#### Setup Finished ####\n";
   }
 }
 
@@ -221,13 +221,12 @@ void subsessionByeHandler(void *clientData, char const *reason)
   UsageEnvironment &env = rtspClient->envir();
 
   // Print reason for leaving
-  env /*<< *rtspClient*/ << "Received RTCP \"BYE\"";
+  env << "RTSPClient received RTCP \"BYE\"";
   if (reason != NULL)
   {
-    env << " (reason:\"" << reason << "\")";
+    env << " (reason:\"" << reason << "\")\n";
     delete[] reason;
   }
-  env << " on \"" /*<< *subsession*/ << "\" subsession\n";
 
   // Now act as if the subsession had closed:
   subsessionAfterPlaying(subsession);
@@ -266,7 +265,7 @@ void shutdownStream(DenseRTSPClient *denseRTSPClient)
     }
   }
 
-  env /*<< *denseRTSPClient*/ << "closing the stream.\n";
+  env << "DenseRTSPClient closing the stream.\n";
   Medium::close(denseRTSPClient);
   // Note that this will also cause this stream's "StreamClientState" structure to get reclaimed.
 

@@ -3,11 +3,7 @@
 
 #include "include/CheckSource.hh"
 
-// Dummy for gdb. just call this function anywhere!
-void dummy()
-{
-  /* I am dummy */
-}
+////// CheckSource //////
 
 CheckSource *CheckSource::createNew(
     UsageEnvironment &env,
@@ -48,7 +44,7 @@ CheckSource *CheckSource::createNew(
       preferredFrameSize,
       playTimePerFrame);
 
-  // Set values, note: consider using setters!
+  // Set values, note: consider using setters.
   checkSource->fChunkCount = chunkCount;
   checkSource->fPath = path;
   checkSource->fFileSize = GetFileSize((const char *)newPath.c_str(), newFid);
@@ -95,7 +91,6 @@ int CheckSource::stripChunks(char (*chunks)[1000][100], FILE *fid)
   fprintf(stderr, "CheckSource::stripChunks()\n");
 
   int chunkCount = 0;
-  //int lineCount = 0;
   size_t size = 0;
   char *line = NULL; // Note: Should this be an empty string instead?
 
@@ -113,7 +108,6 @@ int CheckSource::stripChunks(char (*chunks)[1000][100], FILE *fid)
       memcpy((*chunks)[chunkCount], line, strlen(line) + 1);
       chunkCount++;
     }
-    //lineCount++;
   }
 
   return chunkCount;
@@ -139,7 +133,6 @@ void CheckSource::doGetNextFrame()
 #else
   if (!fHaveStartedReading)
   {
-    //fprintf(stdout, "Add Background Read Handling!\n");
     // Await readable data from the file:
     envir().taskScheduler().turnOnBackgroundReadHandling(
         fileno(fFid),
@@ -151,20 +144,16 @@ void CheckSource::doGetNextFrame()
 
 void CheckSource::fileReadableHandler(CheckSource *source, int /*mask*/)
 {
-  //fprintf(stdout, "File read handler has been called!\n");
   if (!source->isCurrentlyAwaitingData())
   {
     source->doStopGettingFrames();
     return;
   }
   source->doReadFromFile();
-  //fprintf(stderr, "After fileReadableHandler\n");
 }
 
 void CheckSource::doReadFromFile()
 {
-  //fprintf(stdout, "Do read from file has been called!\n");
-  //[[maybe_unused]] u_int32_t firstTimestamp; // note: not used!
   // Try to read as many bytes as will fit in the buffer provided (or "fPreferredFrameSize" if less)
   if (fLimitNumBytesToStream && fNumBytesToStream < (u_int64_t)fMaxSize)
   {
@@ -223,16 +212,12 @@ void CheckSource::doReadFromFile()
 #else
   // Because the file read was done from the event loop, we can call the
   // 'after getting' function directly, without risk of infinite recursion:
-  //fprintf(stderr, "After doReadFromFile()\n");
   FramedSource::afterGetting(this);
 #endif
 }
 
 int CheckSource::manageManifest()
 {
-  //fprintf(stdout, "Manage manifest has been called!\n");
-  //fprintf(stdout, "fFileSize %d, fReadSoFar %d, fCurrentChunk %d, fChunkCount %d\n", fFileSize, fReadSoFar, fCurrentChunk, fChunkCount);
-
   if ((fFileSize - fReadSoFar) == 0 && fCurrentChunk <= fChunkCount)
   {
     fCurrentChunk++;
@@ -248,7 +233,6 @@ int CheckSource::manageManifest()
       fprintf(stderr, "In the CheckSource::manageManifest(): Could not open file!\n");
       exit(1);
     }
-    //fprintf(stderr, "FILE* OpenInputFile 3: %s\n",  newPath.c_str());
     
     // Replace old file with new.
     FILE *oldFid = fFid;
@@ -261,7 +245,6 @@ int CheckSource::manageManifest()
     fFileSize = GetFileSize(newPath.c_str(), newFid);
     fReadSoFar = 0;
     fHaveStartedReading = False;
-    //fprintf(stderr, "Finish ManageManifest\n");
   }
 
   return 1;

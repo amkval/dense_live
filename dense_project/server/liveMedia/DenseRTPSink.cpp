@@ -23,7 +23,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include "include/DenseRTPSink.hh"
 
-////////// DenseRTPSink //////////
+/////// DenseRTPSink ///////
 
 Boolean DenseRTPSink::lookupByName(
     UsageEnvironment &env, char const *sinkName,

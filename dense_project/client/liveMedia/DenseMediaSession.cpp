@@ -32,7 +32,7 @@ DenseMediaSession::DenseMediaSession(UsageEnvironment &env)
       fChunk(0), fPacketChunk(0), fRTPChunk(65535)
 {
   // Open output file
-  fOut = fopen("result.mp4", "wbr");
+  fOut = fopen("result.mp4", "wc+");
   if (fOut == NULL)
   {
     env << "Failed to open file 'result.mp4' in DenseMediaSession \n";
@@ -170,7 +170,8 @@ Boolean DenseMediaSession::initializeWithSDP(std::string sdpDescription)
     subsession->fRTPPayloadFormat = payloadFormat;
 
     // Dense Modifications
-    // TODO: Why do we have two sinks?
+    // Note: Why do we have two sinks?
+    // Should we null initialize the original sink? Will this cause problems?
     std::string denseName = "fileSink.txt";
     subsession->sink = DenseFileSink::createNew(envir(), denseName.c_str(), this);
     // Dense Modifications ^

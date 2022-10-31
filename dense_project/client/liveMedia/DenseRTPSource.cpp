@@ -173,8 +173,6 @@ int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
   }
 
   // If we have lost too many packets, move down a level
-  //TODO: Uncomment.
-  
   if (fDenseMediaSession->fLevelDrops >= 3)
   {
     if (!startDown())

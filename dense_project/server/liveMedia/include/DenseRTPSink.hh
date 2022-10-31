@@ -1,5 +1,5 @@
 // This is a copy of the original file with small changes
-// This is bcause we need to access private values.
+// This is because we need to access private values.
 
 /**********
 This library is free software; you can redistribute it and/or modify it under
@@ -145,7 +145,7 @@ private:
 
 private:
   u_int32_t fSSRC, fTimestampBase;
-  unsigned char fTimestampFrequency; // TODO: Check if this actually needs to be char...
+  unsigned char fTimestampFrequency;
   Boolean fNextTimestampHasBeenPreset;
   Boolean fEnableRTCPReports; // whether RTCP "SR" reports should be sent for this sink (default: True)
   char const *fRTPPayloadFormatName;
