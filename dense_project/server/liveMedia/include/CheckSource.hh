@@ -1,10 +1,15 @@
 #ifndef _CHECK_SOURCE_HH
 #define _CHECK_SOURCE_HH
 
+// Live Imports
+#ifndef _FRAMED_FILE_SOURCE_HH
 #include "FramedFileSource.hh"
+#endif
 
+// C++ Imports
 #include <string>
 
+////// CheckSource //////
 class CheckSource : public FramedFileSource
 {
 public:
@@ -24,7 +29,7 @@ protected:
   virtual ~CheckSource();
 
 public:
-  int getNowChunk() { return fCurrentChunk; } // TODO: rename to getter?
+  int currentChunk() { return fCurrentChunk; }
 
 protected:
   static int stripChunks(char (*chunks)[1000][100], FILE *fid);
@@ -43,7 +48,6 @@ protected:
   int fCurrentChunk;
   int fChunkCount;
 
-  // TODO: Where are these used? Do we need them?
 private:
   unsigned fPreferredFrameSize;
   unsigned fPlayTimePerFrame;

@@ -1,5 +1,6 @@
 #include "include/DensePassiveServerMediaSubsession.hh"
 
+////// DensePassiveServerMediaSubsession //////
 DensePassiveServerMediaSubsession::DensePassiveServerMediaSubsession(RTPSink &rtpSink, RTCPInstance *rtcpInstance) : PassiveServerMediaSubsession(rtpSink, rtcpInstance)
 {
 }

@@ -15,10 +15,12 @@
 #include "DensePrints.hh"
 #endif
 
-class DenseMediaSession; // Forward
+// Forward class declaration
+class DenseMediaSession;
 
 #define LOOKASIDE_BUFFER_SIZE 2000000
 
+////// DenseFileSink //////
 class DenseFileSink : public FileSink
 {
 public:

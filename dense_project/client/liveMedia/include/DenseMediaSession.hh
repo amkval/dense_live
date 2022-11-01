@@ -15,9 +15,10 @@
 #include <string>
 #include <vector>
 
+// Forward class declaration
 class DenseMediaSubsession;
 
-////// DenseMediaSession Implementation //////
+////// DenseMediaSession //////
 class DenseMediaSession : public MediaSession
 {
 public:

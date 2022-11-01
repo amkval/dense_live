@@ -1,18 +1,24 @@
 #ifndef _DENSE_SERVER_MEDIA_SESSION_HH
 #define _DENSE_SERVER_MEDIA_SESSION_HH
 
+// Live Imports
 #ifndef _SERVER_MEDIA_SESSION_HH
 #include "ServerMediaSession.hh"
 #endif
 
+#ifndef _GROUPSOCK_HELPER_HH
+#include "GroupsockHelper.hh"
+#endif
+
+// Dense Imports
 #ifndef _DENSE_PASSIVE_SERVER_MEDIA_SUBSESSION_HH
 #include "DensePassiveServerMediaSubsession.hh"
 #endif
 
-#include "GroupsockHelper.hh"
-
+// C++ Imports
 #include <vector>
 
+////// DenseServerMediaSession ///////
 class DenseServerMediaSession : public ServerMediaSession
 {
 public:

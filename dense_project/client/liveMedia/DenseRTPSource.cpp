@@ -1,7 +1,6 @@
 #include "include/DenseRTPSource.hh"
 
 ////// DenseRTPSource //////
-
 DenseRTPSource *DenseRTPSource::createNew(
     UsageEnvironment &env,
     Groupsock *RTPgs,
@@ -32,10 +31,7 @@ DenseRTPSource::~DenseRTPSource()
 {
 }
 
-/**
- * @brief Spoofed function used to run our code every time a new packet is read
- * If we return false the packet will be dropped.
- */
+// Convenient function that runs every time we receive a packet.
 Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &resultSpecialHeaderSize)
 {
   //UsageEnvironment &env = envir();
@@ -229,40 +225,30 @@ void DenseRTPSource::finish()
   env << "Next Level: " << fDenseMediaSession->fCurrentLevel << "\n";
 }
 
-// Note: This could be made to support an arbitrary amount of levels.
 Boolean DenseRTPSource::startDown()
 {
   UsageEnvironment &env = envir();
+  int newLevel = fDenseMediaSession->fCurrentLevel - 1;
 
   env << "#### Go down a quality level ####\n";
   env << "fMediaSession->fCurrentLevel: " << fDenseMediaSession->fCurrentLevel << "\n";
   env << "fMediaSession->fLevelDrops: " << fDenseMediaSession->fLevelDrops << "\n";
 
-  if (fDenseMediaSession->fCurrentLevel == 1)
+  // Go lower
+  if (newLevel >= 0)
   {
-    if (joinZero())
+    if (joinLevel(newLevel))
     {
-      // Update variables
       fThisIsMoving = True;
-      env << "Joined Level 0\n";
+      env << "Joining level " << newLevel << "\n";
       return True;
     }
   }
-  else if (fDenseMediaSession->fCurrentLevel == 2)
-  {
-    if (joinOne())
-    {
-      // Update variables
-      fThisIsMoving = True;
-      env << "Joined Level 1\n";
-      return True;
-    }
-  }
-  else
-  {
-    //env << "We are already at zero and is not moving anywhere\n";
-    fDenseMediaSession->fLevelDrops = 0;
 
+  // We are already as low as we can go
+  if (newLevel == -1)
+  {
+    fDenseMediaSession->fLevelDrops = 0;
     return True;
   }
 
@@ -272,27 +258,19 @@ Boolean DenseRTPSource::startDown()
 Boolean DenseRTPSource::startUp()
 {
   UsageEnvironment &env = envir();
-  if (fDenseMediaSession->fCurrentLevel == 0)
+  int newLevel = fDenseMediaSession->fCurrentLevel + 1;
+
+  if (newLevel < 3)
   {
-    if (joinOne())
+    if (joinLevel(newLevel))
     {
-      // Update variables
       fThisIsMoving = True;
-      env << "Joined Level 1\n";
+      env << "Joining level " << newLevel << "\n";
       return True;
     }
   }
-  else if (fDenseMediaSession->fCurrentLevel == 1)
-  {
-    if (joinTwo())
-    {
-      // Update variables
-      fThisIsMoving = True;
-      env << "Joined Level 2\n";
-      return True;
-    }
-  }
-  else
+  
+  if (newLevel == 3)
   {
     fDenseMediaSession->fLevelDrops = 0;
     return True;
@@ -301,15 +279,14 @@ Boolean DenseRTPSource::startUp()
   return False;
 }
 
-// Note: The three following functions could be merged.
-Boolean DenseRTPSource::joinZero()
+Boolean DenseRTPSource::joinLevel(int level)
 {
   UsageEnvironment &env = envir();
   Groupsock *ourGS = RTPgs();
-  DenseMediaSubsession *next = fDenseMediaSession->fDenseMediaSubsessions.at(0);
 
-  env << "Joining Quality Level 0!\n";
+  env << "Joining Quality Level " << level << "\n";
 
+  DenseMediaSubsession *next = fDenseMediaSession->fDenseMediaSubsessions.at(level);
   fDenseMediaSession->fDenseNext = next;
   if (next != NULL)
   {
@@ -318,54 +295,8 @@ Boolean DenseRTPSource::joinZero()
     RTPSource *nextSource = next->rtpSource();
     Groupsock *nextGs = nextSource->RTPgs();
     socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    env << "joinZero() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
-    env << "The next level is: " << fDenseMediaSession->fDenseNext->fLevel << "\n";
-    return True;
-  }
-  return False;
-}
-
-Boolean DenseRTPSource::joinOne()
-{
-  UsageEnvironment &env = envir();
-  Groupsock *ourGS = RTPgs();
-  DenseMediaSubsession *next = fDenseMediaSession->fDenseMediaSubsessions.at(1);
-
-  env << "Joining Quality Level 1!\n";
-
-  fDenseMediaSession->fDenseNext = next;
-  if (next != NULL)
-  {
-    struct in_addr nextAddr;
-    nextAddr.s_addr = next->connectionEndpointAddress();
-    RTPSource *nextSource = next->rtpSource();
-    Groupsock *nextGs = nextSource->RTPgs();
-    socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    env << "joinOne() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
-    env << "The next level is: " << fDenseMediaSession->fDenseNext->fLevel << "\n ";
-    return True;
-  }
-  return False;
-}
-
-Boolean DenseRTPSource::joinTwo()
-{
-  UsageEnvironment &env = envir();
-  Groupsock *ourGS = RTPgs();
-
-  env << "Joining Quality Level 2\n";
-
-  DenseMediaSubsession *next = fDenseMediaSession->fDenseMediaSubsessions.at(2);
-  fDenseMediaSession->fDenseNext = next;
-  if (next != NULL)
-  {
-    struct in_addr nextAddr;
-    nextAddr.s_addr = next->connectionEndpointAddress();
-    RTPSource *nextSource = next->rtpSource();
-    Groupsock *nextGs = nextSource->RTPgs();
-    socketJoinGroup(envir(), nextGs->socketNum(), nextAddr.s_addr);
-    env << "joinTwo() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
-    env << "The next level is: " << fDenseMediaSession->fDenseNext->fLevel << "\n ";
+    env << "joinLevel() from " << htons(ourGS->port().num()) << " to " << htons(nextGs->port().num()) << "\n";
+    env << "The next level is: " << level << "\n";
     return True;
   }
   return False;

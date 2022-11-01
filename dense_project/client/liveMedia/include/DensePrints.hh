@@ -10,7 +10,7 @@
 #include "DenseRTSPClient.hh"
 #endif
 
-// Other Imports
+// C++ Imports
 #include <string>
 
 ////// Debug functions //////

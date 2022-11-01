@@ -1,10 +1,12 @@
 #ifndef _DENSE_RTP_SINK_HH
 #define _DENSE_RTP_SINK_HH
 
+// Live Imports
 #ifndef _SIMPLE_RTP_SINK_HH
 #include "SimpleRTPSink.hh"
 #endif
 
+// Dense Imports
 #ifndef _CHECK_SOURCE_HH
 #include "CheckSource.hh"
 #endif
@@ -13,8 +15,10 @@
 #include "DenseRTSPServer.hh"
 #endif
 
+// Forward class declarations
 class DenseRTSPServer;
 
+////// DenseRTPSink //////
 class DenseRTPSink : public SimpleRTPSink
 {
 public:
@@ -59,7 +63,6 @@ protected:
       unsigned numRemainingBytes);
 
   virtual unsigned specialHeaderSize() const;
-  virtual unsigned frameSpecificHeaderSize() const;
 
 protected:
   CheckSource *fCheckSource;

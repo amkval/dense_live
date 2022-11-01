@@ -19,6 +19,7 @@
 class DenseMediaSession;
 class DenseMediaSubsession;
 
+////// DenseRTPSource //////
 class DenseRTPSource : public SimpleRTPSource
 {
 public:
@@ -51,9 +52,7 @@ protected:
   void finish();
   Boolean startDown();
   Boolean startUp();
-  Boolean joinZero();
-  Boolean joinOne();
-  Boolean joinTwo();
+  Boolean joinLevel(int level);
   void printQLF(BufferedPacket *packet);
 
 public:

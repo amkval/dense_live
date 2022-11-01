@@ -141,7 +141,7 @@ void setupSubsessions(DenseRTSPClient *denseRTSPClient)
     }
     env << "Initiated the \"" /*<< *denseMediaSubsession*/ << "\" subsession (";
     
-    // Note: We don't really need both. Unmuxed is what we use.
+    // Note: We don't really need both. We do not mux.
     if (denseMediaSubsession->rtcpIsMuxed())
     {
       env << "client port " << denseMediaSubsession->clientPortNum();

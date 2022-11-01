@@ -1,7 +1,6 @@
 #include "include/DenseMediaSession.hh"
 
 ////// DenseMediaSession /////
-
 DenseMediaSession *DenseMediaSession::createNew(
     UsageEnvironment &env,
     std::string sdpDescription)
@@ -170,8 +169,7 @@ Boolean DenseMediaSession::initializeWithSDP(std::string sdpDescription)
     subsession->fRTPPayloadFormat = payloadFormat;
 
     // Dense Modifications
-    // Note: Why do we have two sinks?
-    // Should we null initialize the original sink? Will this cause problems?
+    // TODO: Remove references to base sink.
     std::string denseName = "fileSink.txt";
     subsession->sink = DenseFileSink::createNew(envir(), denseName.c_str(), this);
     // Dense Modifications ^

@@ -34,7 +34,7 @@ DenseRTSPServer *DenseRTSPServer::createNew(
     Boolean streamRTPOverTCP,
     int levels,
     std::string path,
-    std::string fps,
+    std::string time,
     std::string alias)
 {
 
@@ -47,7 +47,7 @@ DenseRTSPServer *DenseRTSPServer::createNew(
 
   DenseRTSPServer *denseRTSPServer = new DenseRTSPServer(
       env, socket, port, authDatabase, reclamationSeconds,
-      streamRTPOverTCP, levels, path, fps, alias);
+      streamRTPOverTCP, levels, path, time, alias);
 
   env << "DenseRTSPServer:\n"
       << "\tport: " << port << "\n"
@@ -55,7 +55,7 @@ DenseRTSPServer *DenseRTSPServer::createNew(
       << "\tstreamRTPOverTCP: " << streamRTPOverTCP << "\n"
       << "\tlevels: " << levels << "\n"
       << "\tpath: " << path.c_str() << "\n"
-      << "\tfps: " << fps.c_str() << "\n"
+      << "\time: " << time.c_str() << "\n"
       << "\talias: " << alias.c_str() << "\n";
 
   gettimeofday(&denseRTSPServer->fStartTime, NULL);
@@ -73,10 +73,10 @@ DenseRTSPServer::DenseRTSPServer(
     UsageEnvironment &env, int socket, Port port,
     UserAuthenticationDatabase *authDatabase,
     unsigned reclamationSeconds,
-    Boolean streamRTPOverTCP, int levels, std::string path, std::string fps, std::string alias)
+    Boolean streamRTPOverTCP, int levels, std::string path, std::string time, std::string alias)
     : RTSPServer(env, socket, port, authDatabase, reclamationSeconds),
       fLevels(levels), fPath(path), fAlias(alias), fStartPort(port.num()),
-      fStartTime({0}), fFPS(std::stoi(fps)), fNextServer(NULL),
+      fStartTime({0}), fTime(std::stoi(time)), fNextServer(NULL),
       fStreamRTPOverTCP(streamRTPOverTCP), fAllowStreamingRTPOverTCP(True), // TODO: Are these needed?
       fDenseTable(HashTable::create(ONE_WORD_HASH_KEYS))
 {
@@ -183,7 +183,7 @@ void DenseRTSPServer::make(int level)
   env << "Make 'VideoSink'\n";
 
   // Create 'H264 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 100000; // note: Do we need to do this here every time?
+  OutPacketBuffer::maxSize = 100000; // note: This only needs to be done once.
 
   DenseRTPSink *denseRTPSink = DenseRTPSink::createNew(
       env,
@@ -245,10 +245,9 @@ void DenseRTSPServer::make(int level)
     env << "Level \"" << level << "\" is outside the expected values!\n";
     exit(EXIT_FAILURE);
   }
-  strcpy(denseSession->fSessionManifest, base.c_str()); // TODO: Better method than strcpy?
 
   unsigned const inputDataChunkSize = TRANSPORT_PACKETS_PER_NETWORK_PACKET * TRANSPORT_PACKET_SIZE;
-  CheckSource *fileSource = CheckSource::createNew(env, denseSession->fSessionManifest, inputDataChunkSize);
+  CheckSource *fileSource = CheckSource::createNew(env, base, inputDataChunkSize);
   if (fileSource == NULL)
   {
     env << "Unable to open file as a byte-stream file source: " << env.getResultMsg() << "\n";
@@ -257,12 +256,10 @@ void DenseRTSPServer::make(int level)
 
   denseSession->setFileSource(fileSource);
   denseSession->fVideoSink->setCheckSource(fileSource);
-  // fileSource->removeLookAside(); // TODO: Do we need this?
 
   // Make 'videoSource'
   MPEG2TransportStreamFramer *videoSource = MPEG2TransportStreamFramer::createNew(env, denseSession->fFileSource);
   denseSession->setVideoSource(videoSource);
-  // videoSource->removeLookAside(); // TODO: Do we need this?
 
   env << "Add DenseSession to DenseTable\n";
 
@@ -337,7 +334,7 @@ void DenseRTSPServer::makeNextTuple()
       False,
       fLevels,
       fPath,
-      std::to_string(fFPS),
+      std::to_string(fTime),
       newstream);
 
   DenseRTSPServer *old = fNextServer;
@@ -825,9 +822,6 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_OPTIONS(char *urlSuff
   UsageEnvironment &env = envir();
   env << "\n###### handleCmd_OPTIONS ######\n";
 
-  // Note: Unused
-  // ServerMediaSession *session = fOurServer.lookupServerMediaSession(urlSuffix);
-
   snprintf((char *)fResponseBuffer, sizeof fResponseBuffer,
            "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sPublic: %s\r\n\r\n",
            fCurrentCSeq, dateHeader(), fDenseRTSPServer.allowedCommandNames());
@@ -898,9 +892,6 @@ void DenseRTSPServer::DenseRTSPClientConnection::handleCmd_DESCRIBE(
       handleCmd_notFound();
       break;
     }
-
-    // Note: Unused
-    // int fNumStreamStates = session->numSubsessions();
 
     // Increment the "ServerMediaSession" object's reference count, in case someone removes it
     // while we're using it:
@@ -1407,7 +1398,6 @@ void DenseRTSPServer::DenseRTSPClientSession::handleCmd_SETUP_2(DenseRTSPServer:
     fprintf(stderr, "handleCmd_SETUP Looking for client parameters\n%s\n", fullRequestStr);
 
     DensePassiveServerMediaSubsession *cast = dynamic_cast<DensePassiveServerMediaSubsession *>(subsession);
-    // netAddressBits destinationAddress = 0; // TODO: Get this from subsession! Note: But is it not used?
     Groupsock gs = cast->gs();
     AddressString groupAddressStr(gs.groupAddress());
 

@@ -13,7 +13,6 @@
 #include <string>
 
 ////// DenseRTSPClient //////
-
 class DenseRTSPClient : public RTSPClient
 {
 public:

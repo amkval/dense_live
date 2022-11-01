@@ -1,7 +1,6 @@
 #include "include/DenseRTSPClient.hh"
 
 ////// DenseRTSPClient //////
-
 DenseRTSPClient *DenseRTSPClient::createNew(
     UsageEnvironment &env,
     std::string rtspURL,

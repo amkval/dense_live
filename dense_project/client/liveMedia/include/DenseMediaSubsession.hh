@@ -39,32 +39,13 @@ protected:
   virtual ~DenseMediaSubsession();
 
 public:
-  // Note: This function is overriden to spoof fControlPath for RTSPClient
-  // This is done to avoid having to edit / copy the whole file.
-  // This may break another call... and may break things. Better check it out!
-
-  // What is the point rally?
-
-  // Is it even called anywhere?!
-  char const *controlPath() const
-  {
-    std::string denseControlPath = fControlPath;
-    fprintf(stdout, "#### original ControlPath:%s\n", denseControlPath.c_str());
-    int len = denseControlPath.size();
-    std::string level = std::to_string(fLevel);
-    denseControlPath.replace(len - 2, 1, level);
-    fprintf(stdout, "#### new ControlPath:%s\n", denseControlPath.c_str());
-    return denseControlPath.c_str();
-  }
-
-public:
   Boolean denseInitiate();
 protected:
   Boolean denseCreateSourceObjects();
 
 public:
-  int fLevel;                       // Quality level of subsession
-  DenseMediaSession &fMediaSession; // Dense Media Session
+  int fLevel;                       // Quality level of subsession.
+  DenseMediaSession &fMediaSession; // Parent session.
 };
 
 #endif // _DENSE_MEDIA_SUBSESSION_HH

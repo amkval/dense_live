@@ -18,13 +18,13 @@ int main(int argc, char **argv)
   unsigned reclamationSeconds = 65U;  // Note: What is reclamation seconds?
   int levels = 3;                     // Number of quality levels for the server to serve
   std::string path = argv[1];         // Location of video files
-  std::string fps = argv[2];          // Framerate for the transmission
+  std::string time = argv[2];         // How many seconds to wait before starting a new session.
   std::string alias = "makeStream";   // TODO: Is alias the most appropriate name? Just use name?
 
   *env << "\n\nStarting RTSP server!\n";
 
   DenseRTSPServer *denseRTSPServer = DenseRTSPServer::createNew(
-      *env, port, NULL, reclamationSeconds, False, levels, (char *)path.c_str(), fps, alias);
+      *env, port, NULL, reclamationSeconds, False, levels, (char *)path.c_str(), time, alias);
 
   if (denseRTSPServer == NULL)
   {

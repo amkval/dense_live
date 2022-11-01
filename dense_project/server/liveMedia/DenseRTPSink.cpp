@@ -2,7 +2,6 @@
 #include "include/DenseRTPSink.hh"
 
 ////// DenseRTPSink //////
-
 DenseRTPSink *DenseRTPSink::createNew(
     UsageEnvironment &env, Groupsock *RTPGroupsock,
     unsigned char rtpPayloadFormat,
@@ -64,12 +63,12 @@ void DenseRTPSink::doSpecialFrameHandling(
     unsigned numRemainingBytes)
 {
   // Add chunk number as special header extension!
-  unsigned short chunkRef = fCheckSource->getNowChunk();
+  unsigned short chunkRef = fCheckSource->currentChunk();
   unsigned vdhdr = chunkRef << 16;
   vdhdr |= 1;
   setSpecialHeaderWord(vdhdr);
 
-  // Start new server if 'fTime' time has passed:
+  // Start new session if 'fTime' time has passed:
   if (fDenseRTSPServer->fNextServer == NULL)
   {
     struct timeval now;
@@ -77,8 +76,8 @@ void DenseRTPSink::doSpecialFrameHandling(
 
     int diff = now.tv_sec - fDenseRTSPServer->fStartTime.tv_sec;
 
-    // Start a new session if fFPS time has passed.
-    if (diff >= fDenseRTSPServer->fFPS)
+    // Start a new session if 'fTime' time has passed.
+    if (diff >= fDenseRTSPServer->fTime)
     {
       fDenseRTSPServer->makeNextTuple();
     }
@@ -94,11 +93,5 @@ void DenseRTPSink::doSpecialFrameHandling(
 // First header extension
 unsigned DenseRTPSink::specialHeaderSize() const
 {
-  return 4; // Note: Correct?
-}
-
-// Per frame header extension
-unsigned DenseRTPSink::frameSpecificHeaderSize() const
-{
-  return 0;
+  return 4;
 }

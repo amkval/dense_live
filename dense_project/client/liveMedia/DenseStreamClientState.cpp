@@ -1,7 +1,6 @@
 #include "include/DenseStreamClientState.hh"
 
 ////// DenseStreamCLientState //////
-
 DenseStreamClientState::DenseStreamClientState()
     : fDenseMediaSession(NULL)
 {

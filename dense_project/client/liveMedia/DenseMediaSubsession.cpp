@@ -3,7 +3,6 @@
 #include "include/DenseMediaSubsession.hh"
 
 ////// DenseMediaSubsession //////
-
 DenseMediaSubsession *DenseMediaSubsession::createNew(
     UsageEnvironment &env,
     DenseMediaSession &mediaSession,
@@ -50,7 +49,7 @@ Boolean DenseMediaSubsession::denseInitiate()
     if (fClientPortNum != 0)
     {
       // The sockets' port numbers were specified for us.  Use these:
-      fprintf(stderr, "The sockets' port numbers were specified for us. Using: %hu\n", fClientPortNum);
+      env() << "The sockets' port numbers were specified for us.\nport: " << fClientPortNum << "\n";
       Boolean const protocolIsRTP = strcmp(fProtocolName, "RTP") == 0;
       if (protocolIsRTP && !fMultiplexRTCPWithRTP)
       {
@@ -59,12 +58,12 @@ Boolean DenseMediaSubsession::denseInitiate()
       }
       if (isSSM())
       {
-        fprintf(stderr, "Setting up groupsock, ISSSM\n\n");
+        env() << "Setting up groupsock, ISSSM\n";
         fRTPSocket = new Groupsock(env(), tempAddr, fSourceFilterAddr, fClientPortNum);
       }
       else
       {
-        fprintf(stderr, "Setting up groupsock, IS NOT SSM\n\n");
+        env() << "Setting up groupsock, IS NOT SSM\n";
         fRTPSocket = new Groupsock(env(), tempAddr, fClientPortNum, 255);
 
         // <Dense Section>
@@ -73,7 +72,7 @@ Boolean DenseMediaSubsession::denseInitiate()
           char buffer[INET_ADDRSTRLEN];
           inet_ntop(AF_INET, &tempAddr.s_addr, buffer, sizeof(buffer));
           env() << "address: " << buffer << "\n"
-                << "socket: " << fRTPSocket->socketNum() << "\n";
+               << "socket: " << fRTPSocket->socketNum() << "\n";
 
           // Leaving group as this subsession is not in control
           socketLeaveGroup(env(), fRTPSocket->socketNum(), tempAddr.s_addr);

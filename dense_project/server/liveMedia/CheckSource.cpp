@@ -4,7 +4,6 @@
 #include "include/CheckSource.hh"
 
 ////// CheckSource //////
-
 CheckSource *CheckSource::createNew(
     UsageEnvironment &env,
     std::string fileName,
@@ -92,7 +91,7 @@ int CheckSource::stripChunks(char (*chunks)[1000][100], FILE *fid)
 
   int chunkCount = 0;
   size_t size = 0;
-  char *line = NULL; // Note: Should this be an empty string instead?
+  char *line = NULL; // Note: This is not good, does not ensure that we have enough space!
 
   getline(&line, &size, fid);
   if (line[0] != '#')
@@ -222,8 +221,8 @@ int CheckSource::manageManifest()
   {
     fCurrentChunk++;
 
-    std::string newPath = fPath + (char *)fChunks[fCurrentChunk]; // TODO: do we need cast?
-    newPath.erase(newPath.length() - 1);                          // TODO: Make better solution
+    std::string newPath = fPath + (char *)fChunks[fCurrentChunk];
+    newPath.erase(newPath.length() - 1);
     
     fprintf(stderr, "Read: %s\n", newPath.c_str());
 

@@ -23,17 +23,19 @@ class ManifestRTPSink;
 #include "DenseServerMediaSession.hh"
 #endif
 
-// Other Imports
+// C++ Imports
 #include <string>
 
 #define TRANSPORT_PACKET_SIZE 188
 #define TRANSPORT_PACKETS_PER_NETWORK_PACKET 7
 
-///// DENSE RTSP SERVER /////
-class DenseRTSPClientConnection; // Forward
-class DenseRTSPClientSession;    // Forward
-class DenseSession;              // Forward
-class DenseRTPSink;              // Forward
+// Forward class declarations
+class DenseRTSPClientConnection;
+class DenseRTSPClientSession;
+class DenseSession;
+class DenseRTPSink;
+
+////// DenseRTSPServer //////
 class DenseRTSPServer : public RTSPServer
 {
 public:
@@ -45,7 +47,7 @@ public:
       Boolean streamRTPOverTCP = False,
       int levels = 1,
       std::string path = "",   // TODO: do something else?
-      std::string fps = "",    // TODO: do something else?
+      std::string time = "",    // TODO: do something else?
       std::string alias = ""); // TODO: do something else?
 
 protected:
@@ -58,7 +60,7 @@ protected:
       Boolean streamRTPOverTCP,
       int levels,
       std::string path,
-      std::string fps,
+      std::string time,
       std::string alias);
   virtual ~DenseRTSPServer();
 
@@ -68,21 +70,20 @@ public:
 protected:
   void getQualityLevelSDP(std::string &linePointer);
   void make(int number);
-  // void getFile(int /*???*/, char *pointer); TODO: Not used?
   ServerMediaSession *findSession(char const *streamName);
 
 private:
-  static void afterPlaying1(void * /* clientData */); // TODO: name?
+  static void afterPlaying1(void * /* clientData */);
 
 public:
-  int fLevels;               // Quality level count
-  std::string fPath;         // used to be name
-  std::string fAlias;        // Alias of ???, file descriptor? TODO: Better name or understanding!
-  uint16_t fStartPort;       // TODO: verify type // TODO: is this needed? port is already a thing, no?
-  struct timeval fStartTime; // Start time of the server.
+  int fLevels;                  // Quality level count
+  std::string fPath;            // used to be name
+  std::string fAlias;           // Alias of ???, file descriptor? TODO: Better name or understanding!
+  uint16_t fStartPort;          // TODO: verify type // TODO: is this needed? port is already a thing, no?
+  struct timeval fStartTime;    // Start time of the server.
 
-  int fFPS;                     // Used to be 'time'
-  DenseRTSPServer *fNextServer; // TODO: What is this used for?
+  int fTime;                    // Time between starting new sessions.
+  DenseRTSPServer *fNextServer; // Chain to newest server, such that connection will always work.
 
 private:
   Boolean fStreamRTPOverTCP;         // TODO: Used?
@@ -145,10 +146,9 @@ public:
     CheckSource *fFileSource;                      // File Source
     MPEG2TransportStreamFramer *fVideoSource;      // Video Source
     DenseRTSPServer *fDenseServer;                 // Dense Server
-    char fSessionManifest[100];                    // TODO: can this be stored in another way?
   };
 
-  DenseSession *createNewDenseSession(DenseRTSPServer *denseServer); // TODO: why is this not a part of DenseSession?
+  DenseSession *createNewDenseSession(DenseRTSPServer *denseServer); // note: why not make this a part of DenseSession?
 
 public:
   ////// DenseClientConnection //////
