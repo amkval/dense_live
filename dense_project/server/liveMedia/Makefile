@@ -8,8 +8,6 @@ LIBS = $(LIVE_DIR)liveMedia/libliveMedia.a $(LIVE_DIR)groupsock/libgroupsock.a $
 all:
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./CheckSource.cpp
 
-	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseMultiFramedRTPSink.cpp
-
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DensePassiveServerMediaSubsession.cpp
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseRTPSink.cpp
@@ -18,7 +16,5 @@ all:
 
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./DenseServerMediaSession.cpp
 
-	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./ManifestRTPSink.cpp
-	
 clean:
 	rm -f *.o

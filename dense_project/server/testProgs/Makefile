@@ -8,17 +8,17 @@ SERVER = server
 
 # Dense files
 CSOURCE = "../liveMedia/CheckSource"
-DMFRTPSINK = "../liveMedia/DenseMultiFramedRTPSink"
+#DMFRTPSINK = "../liveMedia/DenseMultiFramedRTPSink"
 DPSMSUBSESSION = "../liveMedia/DensePassiveServerMediaSubsession"
 DRTPSINK = "../liveMedia/DenseRTPSink"
 DRTSPSERVER = "../liveMedia/DenseRTSPServer"
 DSMSESSION = "../liveMedia/DenseServerMediaSession"
-MRTPSINK = "../liveMedia/ManifestRTPSink"
+#MRTPSINK = "../liveMedia/ManifestRTPSink"
 
 # enable optimization by changing -O0 to -O
 server:
 	c++ -c -g -O0 -Wall $(INCLUDES) $(MACROS) ./$(SERVER).cpp
-	c++ -g -o $(SERVER) -L. $(SERVER).o $(CSOURCE).o $(DMFRTPSINK).o $(DPSMSUBSESSION).o $(DRTPSINK).o $(DRTSPSERVER).o $(DSMSESSION).o $(MRTPSINK).o $(LIBS)
+	c++ -g -o $(SERVER) -L. $(SERVER).o $(CSOURCE).o $(DPSMSUBSESSION).o $(DRTPSINK).o $(DRTSPSERVER).o $(DSMSESSION).o $(LIBS)
 
 .PHONY: clean all
 all: server

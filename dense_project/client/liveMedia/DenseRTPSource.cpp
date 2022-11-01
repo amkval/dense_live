@@ -374,7 +374,10 @@ Boolean DenseRTPSource::joinTwo()
 int DenseRTPSource::chunk(BufferedPacket *packet)
 {
   unsigned char *data = packet->data();
-  data = data - 8;
+  data = data - 16;
   unsigned extHdr = ntohl(*(u_int32_t *)(data));
+
+  fprintf(stdout, "########## extHdr %d\n", extHdr >> 16);
+
   return (extHdr) >> 16;
 }

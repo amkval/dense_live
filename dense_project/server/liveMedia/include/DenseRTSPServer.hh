@@ -11,8 +11,8 @@ class ManifestRTPSink;
 #include "GroupsockHelper.hh"
 
 // Dense Imports
-#ifndef _MANIFEST_RTP_SINK_HH
-#include "ManifestRTPSink.hh"
+#ifndef _DENSE_RTP_SINK_HH
+#include "DenseRTPSink.hh"
 #endif
 
 #ifndef _CHECK_SOURCE_HH
@@ -109,9 +109,9 @@ public:
         in_addr destinationAddress,
         Port rtpPort, u_int8_t ttl);
 
-    void setVideoSink(ManifestRTPSink *manifestRTPSink)
+    void setVideoSink(DenseRTPSink *denseRTPSink)
     {
-      fVideoSink = manifestRTPSink;
+      fVideoSink = denseRTPSink;
     }
 
     void setServerMediaSession(DenseServerMediaSession *serverMediaSession)
@@ -137,7 +137,7 @@ public:
   public:
     Groupsock *fRTPGroupsock;                      // Socket for RTP
     Groupsock *fRTCPGroupsock;                     // Socket for RTCP
-    ManifestRTPSink *fVideoSink;                   // RTP VideoSink
+    DenseRTPSink *fVideoSink;                      // RTP VideoSink
     RTCPInstance *fRTCP;                           // RTCP Instance
     PassiveServerMediaSubsession *fPassiveSession; // Passive Server Media Subsession
     DenseServerMediaSession *fServerMediaSession;  // Server Media Session

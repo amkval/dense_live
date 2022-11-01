@@ -185,19 +185,14 @@ void DenseRTSPServer::make(int level)
   // Create 'H264 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 100000; // TODO: Do we need to do this here every time?
 
-  ManifestRTPSink *manifestRTPSink = ManifestRTPSink::createNew(
+  DenseRTPSink *denseRTPSink = DenseRTPSink::createNew(
       env,
       denseSession->fRTPGroupsock,
       96,
       90000,
       "video",
-      "MP2T",
-      this,
-      1,
-      True,
-      False,
-      denseName.c_str());
-  denseSession->setVideoSink(manifestRTPSink);
+      "MP2T");
+  denseSession->setVideoSink(denseRTPSink);
 
   // Make RTCP Instance
   env << "Make 'RTCPInstance'\n";
