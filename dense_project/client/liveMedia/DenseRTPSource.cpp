@@ -67,7 +67,7 @@ Boolean DenseRTPSource::processSpecialHeader(BufferedPacket *packet, unsigned &r
 
   // The things the function is actually supposed to do:
   fCurrentPacketCompletesFrame = True;
-  resultSpecialHeaderSize = 0;
+  resultSpecialHeaderSize = 4;
 
   // Can we use the incoming packet?
   // It will be discarded otherwise
@@ -146,11 +146,13 @@ int DenseRTPSource::manageQualityLevels(BufferedPacket *packet)
     return False;
   }
 
-  // If the packet is behind, exit
+  // If the packet is behind, just discard it.
   if (chunk(packet) < fDenseMediaSession->fRTPChunk)
   {
-    env << "Something is wrong in manageQualityLevels() the packet chunk is behind\n";
-    exit(EXIT_FAILURE);
+    //env << "chunk(packet): " << chunk(packet) << "\n";
+    //env << "Something is wrong in manageQualityLevels() the packet chunk is behind\n";
+    //exit(EXIT_FAILURE);
+    return False;
   }
 
   // Set PacketChunk to current chunk ref.
@@ -370,14 +372,9 @@ Boolean DenseRTPSource::joinTwo()
 }
 
 // Extract chunk number from packet
-// Note: This is not an optimal solution and may break if the rtp header changes.
 int DenseRTPSource::chunk(BufferedPacket *packet)
 {
   unsigned char *data = packet->data();
-  data = data - 16;
   unsigned extHdr = ntohl(*(u_int32_t *)(data));
-
-  fprintf(stdout, "########## extHdr %d\n", extHdr >> 16);
-
   return (extHdr) >> 16;
 }

@@ -9,6 +9,12 @@
 #include "CheckSource.hh"
 #endif
 
+#ifndef _DENSE_RTSP_SERVER_HH
+#include "DenseRTSPServer.hh"
+#endif
+
+class DenseRTSPServer;
+
 class DenseRTPSink : public SimpleRTPSink
 {
 public:
@@ -18,16 +24,19 @@ public:
       unsigned rtpTimestampFrequency,
       char const *sdpMediaTypeString,
       char const *rtpPayloadFormatName,
+      DenseRTSPServer *denseRTSPServer,
       unsigned numChannels = 1,
       Boolean allowMultipleFramesPerPacket = True,
       Boolean doNormalMBitRule = False);
 
 protected:
-  DenseRTPSink(UsageEnvironment &env, Groupsock *RTPgs,
+  DenseRTPSink(
+      UsageEnvironment &env, Groupsock *RTPgs,
       unsigned char rtpPayloadFormat,
       unsigned rtpTimestampFrequency,
       char const *sdpMediaTypeString,
       char const *rtpPayloadFormatName,
+      DenseRTSPServer *denseRTSPServer,
       unsigned numChannels,
       Boolean allowMultipleFramesPerPacket,
       Boolean doNormalMBitRule);
@@ -48,12 +57,13 @@ protected:
       unsigned numBytesInFrame,
       struct timeval framePresentationTime,
       unsigned numRemainingBytes);
-      
+
   virtual unsigned specialHeaderSize() const;
   virtual unsigned frameSpecificHeaderSize() const;
 
 protected:
   CheckSource *fCheckSource;
+  DenseRTSPServer *fDenseRTSPServer;
 };
 
 #endif //_DENSE_RTP_SINK_HH

@@ -33,6 +33,7 @@ class ManifestRTPSink;
 class DenseRTSPClientConnection; // Forward
 class DenseRTSPClientSession;    // Forward
 class DenseSession;              // Forward
+class DenseRTPSink;              // Forward
 class DenseRTSPServer : public RTSPServer
 {
 public:

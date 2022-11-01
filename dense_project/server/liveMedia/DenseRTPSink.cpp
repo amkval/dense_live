@@ -9,6 +9,7 @@ DenseRTPSink *DenseRTPSink::createNew(
     unsigned rtpTimestampFrequency,
     char const *sdpMediaTypeString,
     char const *rtpPayloadFormatName,
+    DenseRTSPServer *denseRTSPServer,
     unsigned numChannels,
     Boolean allowMultipleFramesPerPacket,
     Boolean doNormalMBitRule)
@@ -20,6 +21,7 @@ DenseRTPSink *DenseRTPSink::createNew(
       rtpTimestampFrequency,
       sdpMediaTypeString,
       rtpPayloadFormatName,
+      denseRTSPServer,
       numChannels,
       allowMultipleFramesPerPacket,
       doNormalMBitRule);
@@ -32,6 +34,7 @@ DenseRTPSink::DenseRTPSink(
     unsigned rtpTimestampFrequency,
     char const *sdpMediaTypeString,
     char const *rtpPayloadFormatName,
+    DenseRTSPServer *denseRTSPServer,
     unsigned numChannels,
     Boolean allowMultipleFramesPerPacket,
     Boolean doNormalMBitRule)
@@ -45,7 +48,7 @@ DenseRTPSink::DenseRTPSink(
           numChannels,
           allowMultipleFramesPerPacket,
           doNormalMBitRule),
-      fCheckSource(NULL)
+      fCheckSource(NULL), fDenseRTSPServer(denseRTSPServer)
 {
 }
 
@@ -60,18 +63,27 @@ void DenseRTPSink::doSpecialFrameHandling(
     struct timeval framePresentationTime,
     unsigned numRemainingBytes)
 {
-
-  //fprintf(stdout, "################## Special Frame Handling! ##################\n");
-  // if (isFirstFrameInPacket())
-  //{
+  // Add chunk number as special header extension!
   unsigned short chunkRef = fCheckSource->getNowChunk();
   unsigned vdhdr = chunkRef << 16;
   vdhdr |= 1;
   setSpecialHeaderWord(vdhdr);
-  //}
 
-  // Important: Also call our base class's doSpecialFrameHandling(),
-  // to set the packet's timestamp:
+  // Start new server if 'fTime' time has passed:
+  if (fDenseRTSPServer->fNextServer == NULL)
+  {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    int diff = now.tv_sec - fDenseRTSPServer->fStartTime.tv_sec;
+
+    // Start a new session if fFPS time has passed.
+    if (diff >= fDenseRTSPServer->fFPS)
+    {
+      fDenseRTSPServer->makeNextTuple();
+    }
+  }
+
   MultiFramedRTPSink::doSpecialFrameHandling(
       fragmentationOffset,
       frameStart, numBytesInFrame,
@@ -79,12 +91,14 @@ void DenseRTPSink::doSpecialFrameHandling(
       numRemainingBytes);
 }
 
+// First header extension
 unsigned DenseRTPSink::specialHeaderSize() const
 {
   return 4; // Note: Correct?
 }
 
+// Per frame header extension
 unsigned DenseRTPSink::frameSpecificHeaderSize() const
 {
-  return 0; // Note: What is this for? Same as before
+  return 0;
 }
